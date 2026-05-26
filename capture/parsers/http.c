@@ -49,6 +49,10 @@ typedef struct {
     uint16_t         reclassify: 2; // Keep track of each side that needs to reclassify still
     uint16_t         http2Upgrade: 1;
     uint16_t         websocketUpgrade: 2;
+
+    FILE            *bodyFile[2];
+    uint32_t         bodyCount[2];
+    char            *contentType[2];
 } HTTPInfo_t;
 
 extern ArkimeConfig_t        config;
@@ -79,6 +83,7 @@ LOCAL  int magicField;
 LOCAL  int statuscodeField;
 LOCAL  int methodField;
 LOCAL  int reqBodyField;
+LOCAL  int bodyFileField;
 LOCAL  int headerReqField;
 LOCAL  int headerReqValue;
 LOCAL  int headerResField;
@@ -291,6 +296,15 @@ LOCAL int arkime_hp_cb_on_message_begin (http_parser *parser)
         g_checksum_reset(http->checksum[http->which + 2]);
     }
 
+    if (http->bodyFile[http->which]) {
+        fclose(http->bodyFile[http->which]);
+        http->bodyFile[http->which] = NULL;
+    }
+    if (http->contentType[http->which]) {
+        g_free(http->contentType[http->which]);
+        http->contentType[http->which] = NULL;
+    }
+
     if (pluginsCbs & ARKIME_PLUGIN_HP_OMB)
         arkime_plugins_cb_hp_omb(session, parser);
 
@@ -347,6 +361,33 @@ LOCAL int arkime_hp_cb_on_body (http_parser *parser, const char *at, size_t leng
     g_checksum_update(http->checksum[http->which], (guchar *)at, length);
     if (config.supportSha256) {
         g_checksum_update(http->checksum[http->which + 2], (guchar *)at, length);
+    }
+
+    if (config.httpBodySave && length > 0) {
+        if (!http->bodyFile[http->which]) {
+            char idBuf[256];
+            char path[512];
+            char ctSafe[128] = "unknown";
+            arkime_session_id_string(session->sessionId, idBuf);
+            if (http->contentType[http->which]) {
+                const char *ct = http->contentType[http->which];
+                int i;
+                for (i = 0; i < sizeof(ctSafe) - 1 && ct[i] && ct[i] != ';' && ct[i] != ' '; i++) {
+                    ctSafe[i] = (ct[i] == '/' || ct[i] == '\\' || ct[i] == '+' || ct[i] == '.') ? '_' : ct[i];
+                }
+                ctSafe[i] = '\0';
+            }
+            snprintf(path, sizeof(path), "%s/%s_%d_%u_%s.body",
+                     config.httpBodySaveDir, idBuf, http->which, http->bodyCount[http->which]++, ctSafe);
+            http->bodyFile[http->which] = fopen(path, "wb");
+            if (http->bodyFile[http->which]) {
+                arkime_field_string_add(bodyFileField, session, path, -1, TRUE);
+                LOG("ERROR %s", (char *)path);
+            }
+        }
+        if (http->bodyFile[http->which]) {
+            fwrite(at, 1, length, http->bodyFile[http->which]);
+        }
     }
 
     if (pluginsCbs & ARKIME_PLUGIN_HP_OB)
@@ -440,6 +481,11 @@ LOCAL int arkime_hp_cb_on_message_complete (http_parser *parser)
             const char *sha256 = g_checksum_get_string(http->checksum[http->which + 2]);
             arkime_field_string_uw_add(sha256Field, session, (char *)sha256, 64, (gpointer)http->magicString[http->which], TRUE);
         }
+    }
+
+    if (http->bodyFile[http->which]) {
+        fclose(http->bodyFile[http->which]);
+        http->bodyFile[http->which] = NULL;
     }
 
     return 0;
@@ -570,6 +616,16 @@ LOCAL int arkime_hp_cb_on_header_value (http_parser *parser, const char *at, siz
                 http->proxyAuthString = g_string_new_len(at, length);
             else
                 HTTP_GSTR_APPEND(http->proxyAuthString, at, length);
+        } else if (strcasecmp("content-type", http->header[http->which]) == 0) {
+            if (http->contentType[http->which])
+                g_free(http->contentType[http->which]);
+            http->contentType[http->which] = g_strndup(at, length);
+        }
+    } else {
+        if (strcasecmp("content-type", http->header[http->which]) == 0) {
+            if (http->contentType[http->which])
+                g_free(http->contentType[http->which]);
+            http->contentType[http->which] = g_strndup(at, length);
         }
     } else {
         if (strcasecmp("www-authenticate", http->header[http->which]) == 0) {
@@ -860,6 +916,14 @@ LOCAL void http_free(ArkimeSession_t UNUSED(*session), void *uw)
         g_string_free(http->valueString[0], TRUE);
     if (http->valueString[1])
         g_string_free(http->valueString[1], TRUE);
+    if (http->bodyFile[0])
+        fclose(http->bodyFile[0]);
+    if (http->bodyFile[1])
+        fclose(http->bodyFile[1]);
+    if (http->contentType[0])
+        g_free(http->contentType[0]);
+    if (http->contentType[1])
+        g_free(http->contentType[1]);
     g_checksum_free(http->checksum[0]);
     g_checksum_free(http->checksum[1]);
     if (config.supportSha256) {
@@ -1106,6 +1170,12 @@ void arkime_parser_init()
                                        "HTTP Request Body",
                                        ARKIME_FIELD_TYPE_STR_HASH, 0,
                                        (char *)NULL);
+
+    bodyFileField = arkime_field_define("http", "termfield",
+                                        "http.bodyfile", "HTTP Body File", "http.bodyFile",
+                                        "HTTP Body saved file path",
+                                        ARKIME_FIELD_TYPE_STR_HASH, 0,
+                                        (char *)NULL);
 
     for (int i = 0; i <= HTTP_MAX_METHOD; i++) {
         char exp[100];

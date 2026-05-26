@@ -477,6 +477,7 @@ typedef struct arkime_config {
     uint32_t  snapLen;
     uint32_t  maxMemPercentage;
     uint32_t  maxReqBody;
+    uint32_t  httpBodyMaxSize;
     int       packetThreads;
 
     char      logUnknownProtocols;
@@ -491,6 +492,7 @@ typedef struct arkime_config {
     char      parseHTTPHeaderResponseAll;
     char      supportSha256;
     char      reqBodyOnlyUtf8;
+    char      httpBodySave;
     char      compressES;
     char      readTruncatedPackets;
     char      yaraEveryPacket;
@@ -504,6 +506,7 @@ typedef struct arkime_config {
     char      sessionIdMode;
     char     *provider;
     char     *profile;
+    char     *httpBodySaveDir;
     char     *commandSocket;
     char      commandWait;
     char      noRefresh;

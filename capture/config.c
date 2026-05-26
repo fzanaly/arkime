@@ -1294,6 +1294,7 @@ LOCAL void arkime_config_load()
     config.snapLen               = arkime_config_int(keyfile, "snapLen", 16384, 1, ARKIME_PACKET_MAX_LEN);
     config.maxMemPercentage      = arkime_config_int(keyfile, "maxMemPercentage", 100, 5, 100);
     config.maxReqBody            = arkime_config_int(keyfile, "maxReqBody", 256, 0, 0x7fff);
+    config.httpBodyMaxSize       = arkime_config_int(keyfile, "httpBodyMaxSize", 0, 0, 0x7fffffff);
 
     config.packetThreads         = arkime_config_int(keyfile, "packetThreads", 1, 1, ARKIME_MAX_PACKET_THREADS);
 
@@ -1309,6 +1310,7 @@ LOCAL void arkime_config_load()
     config.parseHTTPHeaderResponseAll = arkime_config_boolean(keyfile, "parseHTTPHeaderResponseAll", FALSE);
     config.supportSha256         = arkime_config_boolean(keyfile, "supportSha256", FALSE);
     config.reqBodyOnlyUtf8       = arkime_config_boolean(keyfile, "reqBodyOnlyUtf8", TRUE);
+    config.httpBodySave          = arkime_config_boolean(keyfile, "httpBodySave", TRUE);
     config.compressES            = arkime_config_boolean(keyfile, "compressES", TRUE);
     config.readTruncatedPackets  = arkime_config_boolean(keyfile, "readTruncatedPackets", FALSE);
     config.trackESP              = arkime_config_boolean(keyfile, "trackESP", FALSE);
@@ -1322,6 +1324,7 @@ LOCAL void arkime_config_load()
         config.autoGenerateId = 0;
     }
     g_free(autoGenerateId);
+    config.httpBodySaveDir       = arkime_config_str(keyfile, "httpBodySaveDir", "/data/file");
     config.enablePacketLen       = arkime_config_boolean(NULL, "enablePacketLen", FALSE);
     config.enablePacketDedup     = arkime_config_boolean(NULL, "enablePacketDedup", TRUE);
 
