@@ -1,0 +1,8 @@
+if (session.smtp)
+  div.sessionDetailMeta.bold SMTP
+  dl.sessionDetailMeta(suffix="smtp")
+    +arrayList(session.smtp, 'bodyFile', "Body Files", "email.bodyfile")
+    +arrayList(session.smtp, 'bodyMagic', "Body Magic", "email.body.bodymagic")
+    +arrayList(session.smtp, 'bodyMd5', "Body MD5s", "email.body.md5", null, null, session)
+    if (session.smtp.bodySha256)
+      +arrayList(session.smtp, 'bodySha256', "Body SHA256s", "email.body.sha256", null, null, session)

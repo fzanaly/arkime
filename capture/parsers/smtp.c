@@ -40,6 +40,12 @@ LOCAL  int headerField;
 LOCAL  int headerValue;
 LOCAL  int helloField;
 
+/* Body file saving fields */
+LOCAL  int bodyFileField;
+LOCAL  int bodyMd5Field;
+LOCAL  int bodySha256Field;
+LOCAL  int bodyMagicField;
+
 typedef struct {
     ArkimeStringHead_t boundaries;
     char               state[2];
@@ -50,11 +56,18 @@ typedef struct {
     guint              bdatRemaining[2];
     GChecksum         *checksum[4];
 
+    /* Body file saving fields */
+    FILE              *bodyFile;
+    GChecksum         *bodyChecksum[2];   /* [0]=MD5, [1]=SHA256 */
+    uint16_t           bodyCount;
+
     uint16_t           base64Decode: 2;
     uint16_t           firstInContent: 2;
     uint16_t           seenHeaders: 2;
     uint16_t           inBDAT: 2;
     uint16_t           inNtlmAuth: 1;
+    uint16_t           inBodySave: 1;     /* Currently saving body to file */
+    uint16_t           firstBodyChunk: 1; /* First chunk of body for magic */
 } SMTPInfo_t;
 
 /******************************************************************************/
@@ -613,14 +626,51 @@ LOCAL int smtp_parser(ArkimeSession_t *session, void *uw, const uint8_t *data, i
             printf("%d %d header => %s\n", which, *state, line->str);
 #endif
             if (strcmp(line->str, ".") == 0) {
+                /* Empty message - close body file if open */
+                if (email->bodyFile) {
+                    fclose(email->bodyFile);
+                    email->bodyFile = NULL;
+
+                    const char *md5 = g_checksum_get_string(email->bodyChecksum[0]);
+                    arkime_field_string_add(bodyMd5Field, session, (char *)md5, 32, TRUE);
+                    if (config.supportSha256) {
+                        const char *sha256 = g_checksum_get_string(email->bodyChecksum[1]);
+                        arkime_field_string_add(bodySha256Field, session, (char *)sha256, 64, TRUE);
+                    }
+                }
+
                 email->needStatus[which] = 1;
                 *state = EMAIL_CMD;
             } else if (*line->str == 0) {
+                /* Empty line = end of headers, write blank line separator to body file */
+                if (config.httpBodySave && email->bodyFile) {
+                    fwrite("\n", 1, 1, email->bodyFile);
+                    g_checksum_update(email->bodyChecksum[0], (guchar *)"\n", 1);
+                    if (config.supportSha256) {
+                        g_checksum_update(email->bodyChecksum[1], (guchar *)"\n", 1);
+                    }
+                }
+
                 *state = EMAIL_DATA;
                 if (pluginsCbs & ARKIME_PLUGIN_SMTP_OHC) {
                     arkime_plugins_cb_smtp_ohc(session);
                 }
             } else {
+                /* Header line - open body file on first header line if not already open */
+                if (config.httpBodySave && line->len > 0 && !email->bodyFile) {
+                    char idBuf[256];
+                    char path[512];
+                    arkime_session_id_string(session->sessionId, idBuf);
+                    snprintf(path, sizeof(path), "%s/%s_smtp_%u.eml",
+                            config.contentSavePath, idBuf, email->bodyCount++);
+                    email->bodyFile = fopen(path, "wb");
+                    if (email->bodyFile) {
+                        arkime_field_string_add(bodyFileField, session, path, -1, TRUE);
+                        email->inBodySave = 1;
+                        email->firstBodyChunk = 1;
+                    }
+                }
+
                 *state = EMAIL_DATA_HEADER_DONE;
             }
 
@@ -635,8 +685,32 @@ LOCAL int smtp_parser(ArkimeSession_t *session, void *uw, const uint8_t *data, i
             *state = EMAIL_DATA_HEADER;
 
             if (*data == ' ' || *data == '\t') {
+                /* Folded header line - write continuation to body file */
+                if (config.httpBodySave && email->bodyFile) {
+                    fwrite(" ", 1, 1, email->bodyFile);
+                    g_checksum_update(email->bodyChecksum[0], (guchar *)" ", 1);
+                    if (config.supportSha256) {
+                        g_checksum_update(email->bodyChecksum[1], (guchar *)" ", 1);
+                    }
+                }
                 g_string_append_c(line, ' ');
                 break;
+            }
+
+            /* Non-folded line - write complete header line to body file */
+            if (config.httpBodySave && email->bodyFile && line->len > 0) {
+                fwrite(line->str, 1, line->len, email->bodyFile);
+                fwrite("\n", 1, 1, email->bodyFile);
+                g_checksum_update(email->bodyChecksum[0], (guchar *)line->str, line->len);
+                g_checksum_update(email->bodyChecksum[0], (guchar *)"\n", 1);
+                if (config.supportSha256) {
+                    g_checksum_update(email->bodyChecksum[1], (guchar *)line->str, line->len);
+                    g_checksum_update(email->bodyChecksum[1], (guchar *)"\n", 1);
+                }
+                if (email->firstBodyChunk) {
+                    email->firstBodyChunk = 0;
+                    arkime_parsers_magic(session, bodyMagicField, line->str, line->len);
+                }
             }
 
             const char *colon = strchr(line->str, ':');
@@ -734,6 +808,21 @@ LOCAL int smtp_parser(ArkimeSession_t *session, void *uw, const uint8_t *data, i
 
             // If not in BDAT end DATA on single .
             if (!(email->inBDAT & 1 << which) && (strcmp(line->str, ".") == 0)) {
+                /* End of email body - close body file and store checksums */
+                if (email->bodyFile) {
+                    fclose(email->bodyFile);
+                    email->bodyFile = NULL;
+
+                    /* Store MD5 hash */
+                    const char *md5 = g_checksum_get_string(email->bodyChecksum[0]);
+                    arkime_field_string_add(bodyMd5Field, session, (char *)md5, 32, TRUE);
+
+                    if (config.supportSha256) {
+                        const char *sha256 = g_checksum_get_string(email->bodyChecksum[1]);
+                        arkime_field_string_add(bodySha256Field, session, (char *)sha256, 64, TRUE);
+                    }
+                }
+
                 email->needStatus[which] = 1;
                 *state = EMAIL_CMD;
             } else {
@@ -750,6 +839,12 @@ LOCAL int smtp_parser(ArkimeSession_t *session, void *uw, const uint8_t *data, i
                 }
 
                 if (found) {
+                    /* MIME boundary found - write boundary line to body file, don't close it */
+                    if (config.httpBodySave && email->bodyFile) {
+                        fwrite(line->str, 1, line->len, email->bodyFile);
+                        fwrite("\n", 1, 1, email->bodyFile);
+                    }
+
                     if (email->base64Decode & (1 << which)) {
                         const char *md5 = g_checksum_get_string(email->checksum[which]);
                         arkime_field_string_add(md5Field, session, (char *)md5, 32, TRUE);
@@ -768,6 +863,12 @@ LOCAL int smtp_parser(ArkimeSession_t *session, void *uw, const uint8_t *data, i
                     }
                     *state = EMAIL_MIME;
                 } else if (*state == EMAIL_MIME_DATA_RETURN) {
+                    /* Write MIME body line to body file */
+                    if (config.httpBodySave && email->bodyFile && line->len > 0) {
+                        fwrite(line->str, 1, line->len, email->bodyFile);
+                        fwrite("\n", 1, 1, email->bodyFile);
+                    }
+
                     if (email->base64Decode & (1 << which)) {
                         guchar buf[20000];
                         if (sizeof(buf) > line->len) {
@@ -788,6 +889,51 @@ LOCAL int smtp_parser(ArkimeSession_t *session, void *uw, const uint8_t *data, i
                     }
                     *state = EMAIL_MIME_DATA;
                 } else {
+                    /* EMAIL_DATA_RETURN - write body line to file */
+                    if (config.httpBodySave && line->len > 0) {
+                        /* Handle dot-stuffing: lines starting with ".." become "." */
+                        const char *bodyData = line->str;
+                        int bodyLen = line->len;
+                        if (line->str[0] == '.') {
+                            bodyData = line->str + 1;
+                            bodyLen = line->len - 1;
+                        }
+
+                        /* Open body file on first data */
+                        if (!email->bodyFile) {
+                            char idBuf[256];
+                            char path[512];
+                            arkime_session_id_string(session->sessionId, idBuf);
+                            snprintf(path, sizeof(path), "%s/%s_smtp_%u.eml",
+                                    config.contentSavePath, idBuf, email->bodyCount++);
+                            email->bodyFile = fopen(path, "wb");
+                            if (email->bodyFile) {
+                                arkime_field_string_add(bodyFileField, session, path, -1, TRUE);
+                                email->inBodySave = 1;
+                                email->firstBodyChunk = 1;
+                            }
+                        }
+
+                        if (email->bodyFile) {
+                            fwrite(bodyData, 1, bodyLen, email->bodyFile);
+                            fwrite("\n", 1, 1, email->bodyFile);
+
+                            /* Update checksums */
+                            g_checksum_update(email->bodyChecksum[0], (guchar *)bodyData, bodyLen);
+                            g_checksum_update(email->bodyChecksum[0], (guchar *)"\n", 1);
+                            if (config.supportSha256) {
+                                g_checksum_update(email->bodyChecksum[1], (guchar *)bodyData, bodyLen);
+                                g_checksum_update(email->bodyChecksum[1], (guchar *)"\n", 1);
+                            }
+
+                            /* Magic detection on first chunk */
+                            if (email->firstBodyChunk) {
+                                email->firstBodyChunk = 0;
+                                arkime_parsers_magic(session, bodyMagicField, bodyData, bodyLen);
+                            }
+                        }
+                    }
+
                     *state = EMAIL_DATA;
                 }
             }
@@ -846,11 +992,29 @@ LOCAL int smtp_parser(ArkimeSession_t *session, void *uw, const uint8_t *data, i
             printf("%d %d mime => %s\n", which, *state, line->str);
 #endif
             if (*line->str == 0) {
+                /* Empty line = end of MIME headers, write blank line to body file */
+                if (config.httpBodySave && email->bodyFile) {
+                    fwrite("\n", 1, 1, email->bodyFile);
+                }
                 *state = EMAIL_MIME_DATA;
             } else if (strcmp(line->str, ".") == 0) {
+                /* End of email - close body file and store checksums */
+                if (email->bodyFile) {
+                    fclose(email->bodyFile);
+                    email->bodyFile = NULL;
+
+                    const char *md5 = g_checksum_get_string(email->bodyChecksum[0]);
+                    arkime_field_string_add(bodyMd5Field, session, (char *)md5, 32, TRUE);
+
+                    if (config.supportSha256) {
+                        const char *sha256 = g_checksum_get_string(email->bodyChecksum[1]);
+                        arkime_field_string_add(bodySha256Field, session, (char *)sha256, 64, TRUE);
+                    }
+                }
                 email->needStatus[which] = 1;
                 *state = EMAIL_CMD;
             } else {
+                /* MIME header line - will be written to body file in EMAIL_MIME_DONE */
                 *state = EMAIL_MIME_DONE;
             }
 
@@ -865,8 +1029,18 @@ LOCAL int smtp_parser(ArkimeSession_t *session, void *uw, const uint8_t *data, i
             *state = EMAIL_MIME;
 
             if (*data == ' ' || *data == '\t') {
+                /* Folded MIME header line - write continuation to body file */
+                if (config.httpBodySave && email->bodyFile) {
+                    fwrite(" ", 1, 1, email->bodyFile);
+                }
                 g_string_append_c(line, *data);
                 break;
+            }
+
+            /* Non-folded line - write complete MIME header line to body file */
+            if (config.httpBodySave && email->bodyFile && line->len > 0) {
+                fwrite(line->str, 1, line->len, email->bodyFile);
+                fwrite("\n", 1, 1, email->bodyFile);
             }
 
             if (strncasecmp(line->str, "content-type:", 13) == 0) {
@@ -914,6 +1088,19 @@ LOCAL int smtp_parser(ArkimeSession_t *session, void *uw, const uint8_t *data, i
 #ifdef EMAILDEBUG
                 printf("%d %d resetting to CMD %s\n", which, *state, line->str);
 #endif
+                /* BDAT end - close body file and store checksums */
+                if (email->bodyFile) {
+                    fclose(email->bodyFile);
+                    email->bodyFile = NULL;
+
+                    const char *md5 = g_checksum_get_string(email->bodyChecksum[0]);
+                    arkime_field_string_add(bodyMd5Field, session, (char *)md5, 32, TRUE);
+                    if (config.supportSha256) {
+                        const char *sha256 = g_checksum_get_string(email->bodyChecksum[1]);
+                        arkime_field_string_add(bodySha256Field, session, (char *)sha256, 64, TRUE);
+                    }
+                }
+
                 *state = EMAIL_CMD;
                 email->inBDAT &=  ~(1 << which);
             }
@@ -929,6 +1116,12 @@ LOCAL void smtp_free(ArkimeSession_t UNUSED(*session), void *uw)
 
     ArkimeString_t *string;
 
+    /* Close body file if still open */
+    if (email->bodyFile) {
+        fclose(email->bodyFile);
+        email->bodyFile = NULL;
+    }
+
     g_string_free(email->line[0], TRUE);
     g_string_free(email->line[1], TRUE);
 
@@ -937,6 +1130,12 @@ LOCAL void smtp_free(ArkimeSession_t UNUSED(*session), void *uw)
     if (config.supportSha256) {
         g_checksum_free(email->checksum[2]);
         g_checksum_free(email->checksum[3]);
+    }
+
+    /* Free body checksums */
+    g_checksum_free(email->bodyChecksum[0]);
+    if (config.supportSha256) {
+        g_checksum_free(email->bodyChecksum[1]);
     }
 
     while (DLL_POP_HEAD(s_, &email->boundaries, string)) {
@@ -972,6 +1171,12 @@ LOCAL void smtp_classify(ArkimeSession_t *session, const uint8_t *data, int len,
         if (config.supportSha256) {
             email->checksum[2] = g_checksum_new(G_CHECKSUM_SHA256);
             email->checksum[3] = g_checksum_new(G_CHECKSUM_SHA256);
+        }
+
+        /* Initialize body checksums */
+        email->bodyChecksum[0] = g_checksum_new(G_CHECKSUM_MD5);
+        if (config.supportSha256) {
+            email->bodyChecksum[1] = g_checksum_new(G_CHECKSUM_SHA256);
         }
 
         DLL_INIT(s_, &(email->boundaries));
@@ -1112,6 +1317,36 @@ void arkime_parser_init()
                                      "The content type of body determined by libfile/magic",
                                      ARKIME_FIELD_TYPE_STR_HASH,  ARKIME_FIELD_FLAG_CNT,
                                      (char *)NULL);
+
+    /* SMTP body file fields */
+    bodyFileField = arkime_field_define("email", "termfield",
+                                        "email.bodyfile", "Body File", "email.bodyFile",
+                                        "SMTP email body file path",
+                                        ARKIME_FIELD_TYPE_STR_HASH,  ARKIME_FIELD_FLAG_CNT,
+                                        (char *)NULL);
+
+    bodyMd5Field = arkime_field_define("email", "termfield",
+                                       "email.body.md5", "Body MD5", "email.bodyMd5",
+                                       "SMTP email body MD5 hash",
+                                       ARKIME_FIELD_TYPE_STR_HASH,  ARKIME_FIELD_FLAG_CNT,
+                                       "category", "md5",
+                                       (char *)NULL);
+
+    if (config.supportSha256) {
+        bodySha256Field = arkime_field_define("email", "termfield",
+                                              "email.body.sha256", "Body SHA256", "email.bodySha256",
+                                              "SMTP email body SHA256 hash",
+                                              ARKIME_FIELD_TYPE_STR_HASH,  ARKIME_FIELD_FLAG_CNT,
+                                              "category", "sha256",
+                                              "disabled", "true",
+                                              (char *)NULL);
+    }
+
+    bodyMagicField = arkime_field_define("email", "termfield",
+                                         "email.body.bodymagic", "Body Magic", "email.bodyMagic",
+                                         "SMTP email body content type determined by libfile/magic",
+                                         ARKIME_FIELD_TYPE_STR_HASH,  ARKIME_FIELD_FLAG_CNT,
+                                         (char *)NULL);
 
     helloField = arkime_field_define("email", "lotermfield",
                                      "email.smtp-hello", "SMTP Hello", "email.smtpHello",
