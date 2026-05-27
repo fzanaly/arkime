@@ -378,7 +378,7 @@ LOCAL int arkime_hp_cb_on_body (http_parser *parser, const char *at, size_t leng
                 ctSafe[i] = '\0';
             }
             snprintf(path, sizeof(path), "%s/%s_%d_%u_%s.body",
-                     config.httpBodySaveDir, idBuf, http->which, http->bodyCount[http->which]++, ctSafe);
+                     config.contentSavePath, idBuf, http->which, http->bodyCount[http->which]++, ctSafe);
             http->bodyFile[http->which] = fopen(path, "wb");
             if (http->bodyFile[http->which]) {
                 arkime_field_string_add(bodyFileField, session, path, -1, TRUE);
@@ -627,7 +627,6 @@ LOCAL int arkime_hp_cb_on_header_value (http_parser *parser, const char *at, siz
                 g_free(http->contentType[http->which]);
             http->contentType[http->which] = g_strndup(at, length);
         }
-    } else {
         if (strcasecmp("www-authenticate", http->header[http->which]) == 0) {
             if (!http->authString)
                 http->authString = g_string_new_len(at, length);

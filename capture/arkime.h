@@ -506,7 +506,7 @@ typedef struct arkime_config {
     char      sessionIdMode;
     char     *provider;
     char     *profile;
-    char     *httpBodySaveDir;
+    char     *contentSavePath;
     char     *commandSocket;
     char      commandWait;
     char      noRefresh;

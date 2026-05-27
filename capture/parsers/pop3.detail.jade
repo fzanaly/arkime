@@ -1,0 +1,9 @@
+if (session.pop3)
+  div.sessionDetailMeta.bold POP3
+  dl.sessionDetailMeta(suffix="pop3")
+    +arrayList(session.pop3, 'user', "Users", "pop3.user")
+    +arrayList(session.pop3, 'bodyFile', "Body Files", "pop3.bodyfile")
+    +arrayList(session.pop3, 'bodyMagic', "Body Magic", "pop3.bodymagic")
+    +arrayList(session.pop3, 'bodyMd5', "Body MD5s", "pop3.body.md5", null, null, session)
+    if (session.pop3.bodySha256)
+      +arrayList(session.pop3, 'bodySha256', "Body SHA256s", "pop3.body.sha256", null, null, session)

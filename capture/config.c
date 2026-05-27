@@ -1324,7 +1324,7 @@ LOCAL void arkime_config_load()
         config.autoGenerateId = 0;
     }
     g_free(autoGenerateId);
-    config.httpBodySaveDir       = arkime_config_str(keyfile, "httpBodySaveDir", "/data/file");
+    config.contentSavePath       = arkime_config_str(keyfile, "contentSavePath", "/data/file");
     config.enablePacketLen       = arkime_config_boolean(NULL, "enablePacketLen", FALSE);
     config.enablePacketDedup     = arkime_config_boolean(NULL, "enablePacketDedup", TRUE);
 
