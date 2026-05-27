@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * Basic IMAP parser - parses email addresses from FETCH responses
+ * and saves email body content from FETCH BODY[] literals.
  */
 #include "arkime.h"
 
@@ -12,6 +13,10 @@ LOCAL  int srcField;
 LOCAL  int dstField;
 LOCAL  int subjectField;
 LOCAL  int folderField;
+LOCAL  int bodyFileField;
+LOCAL  int magicField;
+LOCAL  int md5Field;
+LOCAL  int sha256Field;
 
 typedef struct {
     GString  *line;
@@ -19,6 +24,14 @@ typedef struct {
     uint8_t   inFetch;
     uint8_t   inHeaders;
     uint8_t   inNtlmAuth;
+
+    /* Body file saving fields */
+    uint8_t   inLiteral;         /* Currently inside a literal (BODY[]) */
+    uint32_t  literalRemaining;  /* Bytes remaining in current literal */
+    FILE     *bodyFile;          /* File handle for writing body content */
+    GChecksum *checksum[2];      /* [0]=MD5, [1]=SHA256 */
+    uint32_t  bodyCount;         /* Counter for multiple FETCH responses */
+    gboolean  firstBodyChunk;    /* Track first chunk for magic detection */
 } IMAPInfo_t;
 
 /******************************************************************************/
@@ -116,6 +129,33 @@ LOCAL void imap_process_line(IMAPInfo_t *imap, ArkimeSession_t *session, const c
             if (arkime_memcasestr(line, len, "fetch", 5)) {
                 imap->inFetch = TRUE;
                 imap->inHeaders = TRUE;
+
+                /* Check for literal size in FETCH response: "* N FETCH (BODY[] {size}" */
+                const char *brace = memchr(line, '{', len);
+                if (brace) {
+                    const char *endBrace = memchr(brace, '}', line + len - brace);
+                    if (endBrace && endBrace > brace + 1) {
+                        int size = atoi(brace + 1);
+                        if (size > 0) {
+                            imap->inLiteral = TRUE;
+                            imap->literalRemaining = size;
+
+                            /* Open body file */
+                            if (config.httpBodySave) {
+                                char idBuf[256];
+                                char path[512];
+                                arkime_session_id_string(session->sessionId, idBuf);
+                                snprintf(path, sizeof(path), "%s/%s_imap_%u.eml",
+                                        config.contentSavePath, idBuf, imap->bodyCount++);
+                                imap->bodyFile = fopen(path, "wb");
+                                if (imap->bodyFile) {
+                                    arkime_field_string_add(bodyFileField, session, path, -1, TRUE);
+                                }
+                                imap->firstBodyChunk = TRUE;
+                            }
+                        }
+                    }
+                }
             }
         } else if (imap->inFetch && len > 0 && line[0] == ')') {
             imap->inFetch = FALSE;
@@ -161,6 +201,40 @@ LOCAL int imap_parser(ArkimeSession_t *session, void *uw, const uint8_t *data, i
     IMAPInfo_t *imap = uw;
 
     while (remaining > 0) {
+        /* If we are inside a literal (BODY[] data), write raw bytes to body file */
+        if (imap->inLiteral) {
+            uint32_t writeLen = (uint32_t)remaining;
+            if (writeLen > imap->literalRemaining)
+                writeLen = imap->literalRemaining;
+
+            if (writeLen > 0 && config.httpBodySave && imap->bodyFile) {
+                fwrite(data, 1, writeLen, imap->bodyFile);
+                g_checksum_update(imap->checksum[0], data, writeLen);
+                if (config.supportSha256) {
+                    g_checksum_update(imap->checksum[1], data, writeLen);
+                }
+                if (imap->firstBodyChunk) {
+                    imap->firstBodyChunk = FALSE;
+                    arkime_parsers_magic(session, magicField, (const char *)data, writeLen);
+                }
+            }
+
+            imap->literalRemaining -= writeLen;
+            remaining -= writeLen;
+            data += writeLen;
+
+            if (imap->literalRemaining == 0) {
+                imap->inLiteral = FALSE;
+                /* Close body file - literal data is complete */
+                if (imap->bodyFile) {
+                    fclose(imap->bodyFile);
+                    imap->bodyFile = NULL;
+                }
+            }
+            continue;
+        }
+
+        /* Normal line-by-line parsing */
         /* Find end of line */
         const uint8_t *lineEnd = memchr(data, '\n', remaining);
         int lineLen;
@@ -202,11 +276,37 @@ LOCAL int imap_parser(ArkimeSession_t *session, void *uw, const uint8_t *data, i
     return 0;
 }
 /******************************************************************************/
+LOCAL void imap_save(ArkimeSession_t *session, void *uw, int final)
+{
+    IMAPInfo_t *imap = uw;
+    if (!final)
+        return;
+
+    /* Store MD5 hash if we captured any body content */
+    if (imap->bodyCount > 0) {
+        const char *md5 = g_checksum_get_string(imap->checksum[0]);
+        arkime_field_string_add(md5Field, session, (char *)md5, 32, TRUE);
+
+        if (config.supportSha256) {
+            const char *sha256 = g_checksum_get_string(imap->checksum[1]);
+            arkime_field_string_add(sha256Field, session, (char *)sha256, 64, TRUE);
+        }
+    }
+}
+/******************************************************************************/
 LOCAL void imap_free(ArkimeSession_t UNUSED(*session), void *uw)
 {
     IMAPInfo_t *imap = uw;
 
     g_string_free(imap->line, TRUE);
+
+    if (imap->bodyFile)
+        fclose(imap->bodyFile);
+
+    g_checksum_free(imap->checksum[0]);
+    if (config.supportSha256)
+        g_checksum_free(imap->checksum[1]);
+
     ARKIME_TYPE_FREE(IMAPInfo_t, imap);
 }
 /******************************************************************************/
@@ -231,7 +331,11 @@ LOCAL void imap_classify(ArkimeSession_t *session, const uint8_t *data, int len,
     imap->line = g_string_sized_new(256);
     imap->serverWhich = which;
 
-    arkime_parsers_register(session, imap_parser, imap, imap_free);
+    imap->checksum[0] = g_checksum_new(G_CHECKSUM_MD5);
+    if (config.supportSha256)
+        imap->checksum[1] = g_checksum_new(G_CHECKSUM_SHA256);
+
+    arkime_parsers_register2(session, imap_parser, imap, imap_free, imap_save);
 }
 /******************************************************************************/
 void arkime_parser_init()
@@ -264,6 +368,35 @@ void arkime_parser_init()
                                       "Email folder/mailbox name",
                                       ARKIME_FIELD_TYPE_STR_HASH, ARKIME_FIELD_FLAG_CNT,
                                       (char *)NULL);
+
+    bodyFileField = arkime_field_define("imap", "termfield",
+                                        "imap.bodyfile", "IMAP Body File", "imap.bodyFile",
+                                        "IMAP email body saved file path",
+                                        ARKIME_FIELD_TYPE_STR_HASH, 0,
+                                        (char *)NULL);
+
+    magicField = arkime_field_define("imap", "termfield",
+                                     "imap.bodymagic", "IMAP Body Magic", "imap.bodyMagic",
+                                     "The content type of IMAP body determined by libfile/magic",
+                                     ARKIME_FIELD_TYPE_STR_HASH, ARKIME_FIELD_FLAG_CNT,
+                                     (char *)NULL);
+
+    md5Field = arkime_field_define("imap", "termfield",
+                                   "imap.body.md5", "IMAP Body MD5", "imap.bodyMd5",
+                                   "IMAP email body MD5",
+                                   ARKIME_FIELD_TYPE_STR_HASH, ARKIME_FIELD_FLAG_CNT,
+                                   "category", "md5",
+                                   (char *)NULL);
+
+    if (config.supportSha256) {
+        sha256Field = arkime_field_define("imap", "termfield",
+                                          "imap.body.sha256", "IMAP Body SHA256", "imap.bodySha256",
+                                          "IMAP email body SHA256",
+                                          ARKIME_FIELD_TYPE_STR_HASH, ARKIME_FIELD_FLAG_CNT,
+                                          "category", "sha256",
+                                          "disabled", "true",
+                                          (char *)NULL);
+    }
 
     arkime_parsers_classifier_register_tcp("imap", NULL, 0, (const uint8_t *)"* OK ", 5, imap_classify);
 }
