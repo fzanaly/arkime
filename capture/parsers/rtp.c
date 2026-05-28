@@ -92,9 +92,9 @@ const char *rtp_codec_container_ext(const char *codec)
     if (g_ascii_strcasecmp(codec, "PCMU") == 0)  return "wav";
     if (g_ascii_strcasecmp(codec, "PCMA") == 0)  return "wav";
     if (g_ascii_strcasecmp(codec, "G722") == 0)  return "wav";
+    if (g_ascii_strcasecmp(codec, "G729") == 0)  return "wav";
     if (g_ascii_strcasecmp(codec, "OPUS") == 0)  return "mp4";
     if (g_ascii_strcasecmp(codec, "VP8")  == 0)  return "ivf";
-    if (g_ascii_strcasecmp(codec, "G729") == 0)  return "raw";
     return "raw";
 }
 
@@ -551,6 +551,9 @@ LOCAL int rtp_mux_audio_to_wav(const char *output_path,
     } else if (g_ascii_strcasecmp(codec_name, "G722") == 0) {
         codec_id = AV_CODEC_ID_ADPCM_G722;
         sample_rate = 16000; /* G722 内部为 16kHz */
+    } else if (g_ascii_strcasecmp(codec_name, "G729") == 0) {
+        codec_id = AV_CODEC_ID_G729;
+        sample_rate = 8000;
     } else {
         LOG("rtp: unsupported audio codec for WAV: %s", codec_name);
         return -1;
@@ -629,7 +632,14 @@ LOCAL int rtp_mux_audio_to_wav(const char *output_path,
     }
 
     int offset = 0;
-    int frame_size = (codec_id == AV_CODEC_ID_PCM_MULAW || codec_id == AV_CODEC_ID_PCM_ALAW) ? 160 : 320;
+    int frame_size;
+    if (codec_id == AV_CODEC_ID_PCM_MULAW || codec_id == AV_CODEC_ID_PCM_ALAW) {
+        frame_size = 160; /* 20ms @ 8kHz */
+    } else if (codec_id == AV_CODEC_ID_G729) {
+        frame_size = 10;  /* 10ms @ 8kbps — 每帧 10 字节 */
+    } else {
+        frame_size = 320; /* G722: 20ms @ 16kHz */
+    }
     int pts_samples = 0;
 
     while (offset + frame_size <= audio_len) {
@@ -861,7 +871,8 @@ LOCAL int rtp_save_stream_to_file(const char *output_path,
                                     stream->pps, stream->ppsLen);
     } else if (g_ascii_strcasecmp(codec, "PCMU") == 0 ||
                g_ascii_strcasecmp(codec, "PCMA") == 0 ||
-               g_ascii_strcasecmp(codec, "G722") == 0) {
+               g_ascii_strcasecmp(codec, "G722") == 0 ||
+               g_ascii_strcasecmp(codec, "G729") == 0) {
         return rtp_mux_audio_to_wav(output_path, codec,
                                      stream->buf, stream->bufLen,
                                      stream->firstTimestamp,
