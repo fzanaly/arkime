@@ -1,0 +1,786 @@
+id,friendlyName,group,help,type,dbField2
+ip,All IP fields,general,Search all ip fields,ip,ipall
+port,All port fields,general,Search all port fields,integer,portall
+rir,All rir fields,general,Search all rir fields,uptermfield,rirall
+country,All country fields,general,Search all country fields,uptermfield,geoall
+asn,All ASN fields,general,Search all ASN fields,termfield,asnall
+host,All Host fields,general,Search all Host fields,lotermfield,hostall
+source.as.number,Src ASN Number,general,GeoIP ASN Number calculated from the source IP,integer,
+source.as.organization.name,Src ASN Name,general,GeoIP ASN Name calculated from the source IP,termfield,
+rir.src,Src RIR,general,Source RIR,uptermfield,srcRIR
+destination.as.number,Dst ASN Number,general,GeoIP ASN Number calculated from the destination IP,integer,
+destination.as.organization.name,Dst ASN Name,general,GeoIP ASN Name calculated from the destination IP,termfield,
+rir.dst,Dst RIR,general,Destination RIR,uptermfield,dstRIR
+databytes,Data bytes,general,Total number of data bytes sent AND received in a session,integer,totDataBytes
+ip.protocol,IP Protocol,general,IP protocol number or friendly name,lotermfield,ipProtocol
+id,Arkime ID,general,Arkime ID for the session,termfield,_id
+rootId,Arkime Root ID,general,Arkime ID of the first session in a multi session stream,termfield,rootId
+node,Arkime Node,general,Arkime node name the session was recorded on,termfield,node
+srcNode,Arkime Source Node,general,Source Arkime node name the session was recorded on when using send to cluster,termfield,srcNode
+file,Filename,general,Arkime offline pcap filename,fileand,fileand
+payload8.src.hex,Payload Src Hex,general,First 8 bytes of source payload in hex,lotermfield,srcPayload8
+payload8.src.utf8,Payload Src UTF8,general,First 8 bytes of source payload in utf8,termfield,srcPayload8
+payload8.dst.hex,Payload Dst Hex,general,First 8 bytes of destination payload in hex,lotermfield,dstPayload8
+payload8.dst.utf8,Payload Dst UTF8,general,First 8 bytes of destination payload in utf8,termfield,dstPayload8
+payload8.hex,Payload Hex,general,First 8 bytes of payload in hex,lotermfield,fballhex
+payload8.utf8,Payload UTF8,general,First 8 bytes of payload in utf8,lotermfield,fballutf8
+scrubbed.by,Scrubbed By,general,SPI data was scrubbed by,lotermfield,scrubby
+view,View Name,general,Arkime view name,viewand,viewand
+starttime,Start Time,general,Session Start Time,seconds,firstPacket
+stoptime,Stop Time,general,Session Stop Time,seconds,lastPacket
+huntId,Hunt ID,general,The ID of the packet search job that matched this session,termfield,huntId
+huntName,Hunt Name,general,The name of the packet search job that matched this session,termfield,huntName
+port.dst,Dst Port,general,Destination Port,integer,dstPort
+asn.src,Src ASN,general,GeoIP ASN string calculated from the source IP,termfield,srcASN
+bytes.dst,Dst Bytes,general,Total number of raw bytes sent by destination in a session,integer,dstBytes
+port.src,Src Port,general,Source Port,integer,srcPort
+packets,Packets,general,Total number of packets sent AND received in a session,integer,totPackets
+ip.src,Src IP,general,Source IP,ip,srcIp
+databytes.src,Src data bytes,general,Total number of data bytes sent by source in a session,integer,srcDataBytes
+country.dst,Dst Country,general,Destination Country,uptermfield,dstGEO
+asn.dst,Dst ASN,general,GeoIP ASN string calculated from the destination IP,termfield,dstASN
+bytes.src,Src Bytes,general,Total number of raw bytes sent by source in a session,integer,srcBytes
+bytes,Bytes,general,Total number of raw bytes sent AND received in a session,integer,totBytes
+ip.dst,Dst IP,general,Destination IP,ip,dstIp
+databytes.dst,Dst data bytes,general,Total number of data bytes sent by destination in a session,integer,dstDataBytes
+country.src,Src Country,general,Source Country,uptermfield,srcGEO
+ftp.savedFile,Saved File,ftp,Path of the reassembled FTP data-channel file saved to disk,termfield,ftp.savedFile
+ftp.savedFile.cnt,Saved File Cnt,ftp,Unique number of Path of the reassembled FTP data-channel file saved to disk,integer,ftp.savedFileCnt
+http.bodyfile,HTTP Body File,http,HTTP Body saved file path,termfield,http.bodyFile
+mac.src,Src MAC,general,Source ethernet mac addresses set for session,lotermfield,source.mac
+mac.src.cnt,Src MAC Cnt,general,Unique number of Source ethernet mac addresses set for session,integer,source.mac-cnt
+mac.dst,Dst MAC,general,Destination ethernet mac addresses set for session,lotermfield,destination.mac
+mac.dst.cnt,Dst MAC Cnt,general,Unique number of Destination ethernet mac addresses set for session,integer,destination.mac-cnt
+outermac.src,Src Outer MAC,general,Source ethernet outer mac addresses set for session,lotermfield,srcOuterMac
+outermac.src.cnt,Src Outer MAC Cnt,general,Unique number of Source ethernet outer mac addresses set for session,integer,srcOuterMac-cnt
+outermac.dst,Dst Outer MAC,general,Destination ethernet outer mac addresses set for session,lotermfield,dstOuterMac
+outermac.dst.cnt,Dst Outer MAC Cnt,general,Unique number of Destination ethernet outer mac addresses set for session,integer,dstOuterMac-cnt
+dscp.src,Src DSCP,general,Source non zero differentiated services class selector set for session,integer,srcDscp
+dscp.src.cnt,Src DSCP Cnt,general,Unique number of Source non zero differentiated services class selector set for session,integer,srcDscpCnt
+dscp.dst,Dst DSCP,general,Destination non zero differentiated services class selector set for session,integer,dstDscp
+dscp.dst.cnt,Dst DSCP Cnt,general,Unique number of Destination non zero differentiated services class selector set for session,integer,dstDscpCnt
+ttl.src,TTL Src,general,Source IP TTL for first few packets,integer,srcTTL
+ttl.src.cnt,TTL Src Cnt,general,Unique number of Source IP TTL for first few packets,integer,srcTTLCnt
+ttl.dst,TTL Dst,general,Destination IP TTL for first few packets,integer,dstTTL
+ttl.dst.cnt,TTL Dst Cnt,general,Unique number of Destination IP TTL for first few packets,integer,dstTTLCnt
+mac,Src or Dst MAC,general,Shorthand for mac.src or mac.dst,lotermfield,macall
+outermac,Src or Dst Outer MAC,general,Shorthand for outermac.src or outermac.dst,lotermfield,outermacall
+oui.src,Src OUI,general,Source ethernet oui for session,termfield,srcOui
+oui.src.cnt,Src OUI Cnt,general,Unique number of Source ethernet oui for session,integer,srcOuiCnt
+oui.dst,Dst OUI,general,Destination ethernet oui for session,termfield,dstOui
+oui.dst.cnt,Dst OUI Cnt,general,Unique number of Destination ethernet oui for session,integer,dstOuiCnt
+outeroui.src,Src Outer OUI,general,Source ethernet outer oui for session,termfield,srcOuterOui
+outeroui.src.cnt,Src Outer OUI Cnt,general,Unique number of Source ethernet outer oui for session,integer,srcOuterOuiCnt
+outeroui.dst,Dst Outer OUI,general,Destination ethernet outer oui for session,termfield,dstOuterOui
+outeroui.dst.cnt,Dst Outer OUI Cnt,general,Unique number of Destination ethernet outer oui for session,integer,dstOuterOuiCnt
+vlan,VLan,general,vlan value,integer,network.vlan.id
+vlan.cnt,VLan Cnt,general,Unique number of vlan value,integer,network.vlan.id-cnt
+vlan.dot1q,VLan dot1q,general,vlan dot1q,integer,dot1q.id
+vlan.dot1q.cnt,VLan dot1q Cnt,general,Unique number of vlan dot1q,integer,dot1q.idCnt
+vlan.dot1ad,VLan dot1ad,general,vlan dot1ad,integer,dot1ad.id
+vlan.dot1ad.cnt,VLan dot1ad Cnt,general,Unique number of vlan dot1ad,integer,dot1ad.idCnt
+vni,VNI,general,vni value,integer,vni
+vni.cnt,VNI Cnt,general,Unique number of vni value,integer,vniCnt
+outerip.src,Src Outer IP,general,Source ethernet outer ip for session,ip,srcOuterIp
+outerip.src.cnt,Src Outer IP Cnt,general,Unique number of Source ethernet outer ip for session,integer,srcOuterIpCnt
+outerip.src.country,Src Outer IP GEO,general,GeoIP country string calculated from the Source ethernet outer ip for session,uptermfield,srcOuterGEO
+outerip.src.asn,Src Outer IP ASN,general,GeoIP ASN string calculated from the Source ethernet outer ip for session,termfield,srcOuterASN
+outerip.src.rir,Src Outer IP RIR,general,Regional Internet Registry string calculated from Source ethernet outer ip for session,uptermfield,srcOuterRIR
+outerip.dst,Dst Outer IP,general,Destination outer ip for session,ip,dstOuterIp
+outerip.dst.cnt,Dst Outer IP Cnt,general,Unique number of Destination outer ip for session,integer,dstOuterIpCnt
+outerip.dst.country,Dst Outer IP GEO,general,GeoIP country string calculated from the Destination outer ip for session,uptermfield,dstOuterGEO
+outerip.dst.asn,Dst Outer IP ASN,general,GeoIP ASN string calculated from the Destination outer ip for session,termfield,dstOuterASN
+outerip.dst.rir,Dst Outer IP RIR,general,Regional Internet Registry string calculated from Destination outer ip for session,uptermfield,dstOuterRIR
+outerip,Src or Dst Outer IP,general,Shorthand for outerip.src or outerip.dst,lotermfield,outeripall
+tcpflags.syn,TCP Flag SYN,general,Count of packets with SYN and no ACK flag set,integer,tcpflags.syn
+tcpflags.syn-ack,TCP Flag SYN-ACK,general,Count of packets with SYN and ACK flag set,integer,tcpflags.syn-ack
+tcpflags.ack,TCP Flag ACK,general,Count of packets with only the ACK flag set,integer,tcpflags.ack
+tcpflags.psh,TCP Flag PSH,general,Count of packets with PSH flag set,integer,tcpflags.psh
+tcpflags.fin,TCP Flag FIN,general,Count of packets with FIN flag set,integer,tcpflags.fin
+tcpflags.rst,TCP Flag RST,general,Count of packets with RST flag set,integer,tcpflags.rst
+tcpflags.urg,TCP Flag URG,general,Count of packets with URG flag set,integer,tcpflags.urg
+tcpflags.ece,TCP Flag ECE,general,Count of packets with ECE flag set,integer,tcpflags.ece
+tcpflags.cwr,TCP Flag CWR,general,Count of packets with CWR flag set,integer,tcpflags.cwr
+tcpflags.ae,TCP Flag AE,general,Count of packets with AE (Accurate ECN) flag set,integer,tcpflags.ae
+initRTT,Initial RTT,general,"Initial round trip time, difference between SYN and ACK timestamp divided by 2 in ms",integer,initRTT
+tcpseq.src,TCP Src Seq,general,Source SYN sequence number,integer,tcpseq.src
+tcpseq.dst,TCP Dst Seq,general,Destination SYN-ACK sequence number,integer,tcpseq.dst
+ethertype,Ethertype,general,The ethernet protocol type,integer,ethertype
+region.src,Src Region,general,Source IP Region ISO,termfield,source.geo.region_iso_code
+city.src,Src City,general,Source IP City Name,termfield,source.geo.city_name
+region.dst,Dst Region,general,Destination IP Region ISO,termfield,destination.geo.region_iso_code
+city.dst,Dst City,general,Destination IP City Name,termfield,destination.geo.city_name
+session.segments,Session Segments,general,Number of segments in session so far,integer,segmentCnt
+session.length,Session Length,general,Session Length in milliseconds so far,integer,length
+user,User,general,External user set for session,lotermfield,user
+user.cnt,User Cnt,general,Unique number of External user set for session,integer,userCnt
+adb.version,Version,adb,ADB Protocol Version,termfield,adb.version
+adb.version.cnt,Version Cnt,adb,Unique number of ADB Protocol Version,integer,adb.versionCnt
+adb.serial,Serial,adb,ADB Device Serial Number,lotermfield,adb.serial
+adb.serial.cnt,Serial Cnt,adb,Unique number of ADB Device Serial Number,integer,adb.serialCnt
+adb.systemtype,System Type,adb,"ADB System Type (device, host, bootloader, etc.)",lotermfield,adb.systemtype
+adb.systemtype.cnt,System Type Cnt,adb,"Unique number of ADB System Type (device, host, bootloader, etc.)",integer,adb.systemtypeCnt
+adb.command,Command,adb,ADB Command Type,lotermfield,adb.command
+adb.command.cnt,Command Cnt,adb,Unique number of ADB Command Type,integer,adb.commandCnt
+adb.service,Service,adb,ADB Service Name,lotermfield,adb.service
+adb.service.cnt,Service Cnt,adb,Unique number of ADB Service Name,integer,adb.serviceCnt
+adb.maxpayload,Max Payload,adb,ADB Maximum Payload Size,termfield,adb.maxpayload
+adb.maxpayload.cnt,Max Payload Cnt,adb,Unique number of ADB Maximum Payload Size,integer,adb.maxpayloadCnt
+adb.authtype,Auth Type,adb,ADB Authentication Type,lotermfield,adb.authtype
+adb.authtype.cnt,Auth Type Cnt,adb,Unique number of ADB Authentication Type,integer,adb.authtypeCnt
+adb.streamid,Stream ID,adb,ADB Stream Identifier,termfield,adb.streamid
+adb.streamid.cnt,Stream ID Cnt,adb,Unique number of ADB Stream Identifier,integer,adb.streamidCnt
+adb.sync.operation,Sync Operation,adb,"ADB File Sync Operation (SEND, RECV, LIST, STAT)",lotermfield,adb.sync.operation
+adb.sync.operation.cnt,Sync Operation Cnt,adb,"Unique number of ADB File Sync Operation (SEND, RECV, LIST, STAT)",integer,adb.sync.operationCnt
+adb.sync.path,Sync Path,adb,ADB File Sync Path,lotermfield,adb.sync.path
+adb.sync.path.cnt,Sync Path Cnt,adb,Unique number of ADB File Sync Path,integer,adb.sync.pathCnt
+adb.shell.exitcode,Shell Exit Code,adb,ADB Shell Command Exit Code,termfield,adb.shell.exitcode
+adb.shell.exitcode.cnt,Shell Exit Code Cnt,adb,Unique number of ADB Shell Command Exit Code,integer,adb.shell.exitcodeCnt
+adb.forward.local,Forward Local,adb,ADB Port Forward Local Endpoint,lotermfield,adb.forward.local
+adb.forward.local.cnt,Forward Local Cnt,adb,Unique number of ADB Port Forward Local Endpoint,integer,adb.forward.localCnt
+adb.forward.remote,Forward Remote,adb,ADB Port Forward Remote Endpoint,lotermfield,adb.forward.remote
+adb.forward.remote.cnt,Forward Remote Cnt,adb,Unique number of ADB Port Forward Remote Endpoint,integer,adb.forward.remoteCnt
+adb.forward.direction,Forward Direction,adb,ADB Port Forward Direction (forward or reverse),lotermfield,adb.forward.direction
+adb.forward.direction.cnt,Forward Direction Cnt,adb,Unique number of ADB Port Forward Direction (forward or reverse),integer,adb.forward.directionCnt
+bacnet.function,Function,bacnet,BACnet BVLC function,termfield,bacnet.function
+bacnet.function.cnt,Function Cnt,bacnet,Unique number of BACnet BVLC function,integer,bacnet.functionCnt
+bacnet.service,Service,bacnet,BACnet APDU service,termfield,bacnet.service
+bacnet.service.cnt,Service Cnt,bacnet,Unique number of BACnet APDU service,integer,bacnet.serviceCnt
+bacnet.apdu-type,APDU Type,bacnet,BACnet APDU type,termfield,bacnet.apduType
+bacnet.apdu-type.cnt,APDU Type Cnt,bacnet,Unique number of BACnet APDU type,integer,bacnet.apduTypeCnt
+bacnet.object-name,Object Name,bacnet,BACnet object name,termfield,bacnet.objectName
+bacnet.object-name.cnt,Object Name Cnt,bacnet,Unique number of BACnet object name,integer,bacnet.objectNameCnt
+bgp.type,Type,bgp,BGP Type field,uptermfield,bgp.type
+c1222.calledApTitle,Called AP Title,c1222,C12.22 called AP title OID,termfield,c1222.calledApTitle
+c1222.calledApTitle.cnt,Called AP Title Cnt,c1222,Unique number of C12.22 called AP title OID,integer,c1222.calledApTitleCnt
+c1222.callingApTitle,Calling AP Title,c1222,C12.22 calling AP title OID,termfield,c1222.callingApTitle
+c1222.callingApTitle.cnt,Calling AP Title Cnt,c1222,Unique number of C12.22 calling AP title OID,integer,c1222.callingApTitleCnt
+c1222.calledApInvocationId,Called AP Invocation ID,c1222,C12.22 called AP invocation identifier,integer,c1222.calledApInvocationId
+c1222.calledApInvocationId.cnt,Called AP Invocation ID Cnt,c1222,Unique number of C12.22 called AP invocation identifier,integer,c1222.calledApInvocationIdCnt
+c1222.callingApInvocationId,Calling AP Invocation ID,c1222,C12.22 calling AP invocation identifier,integer,c1222.callingApInvocationId
+c1222.callingApInvocationId.cnt,Calling AP Invocation ID Cnt,c1222,Unique number of C12.22 calling AP invocation identifier,integer,c1222.callingApInvocationIdCnt
+c1222.securityMode,Security Mode,c1222,C12.22 EPSEM security mode,termfield,c1222.securityMode
+c1222.securityMode.cnt,Security Mode Cnt,c1222,Unique number of C12.22 EPSEM security mode,integer,c1222.securityModeCnt
+c1222.responseControl,Response Control,c1222,C12.22 EPSEM response control,termfield,c1222.responseControl
+c1222.responseControl.cnt,Response Control Cnt,c1222,Unique number of C12.22 EPSEM response control,integer,c1222.responseControlCnt
+camel.op,Operation,camel,CAP/CAMEL Operation Name,lotermfield,camel.op
+camel.op.cnt,Operation Cnt,camel,Unique number of CAP/CAMEL Operation Name,integer,camel.opCnt
+camel.calling,Calling,camel,CAP Calling Party Number,termfield,camel.calling
+camel.calling.cnt,Calling Cnt,camel,Unique number of CAP Calling Party Number,integer,camel.callingCnt
+camel.called,Called,camel,CAP Called Party Number,termfield,camel.called
+camel.called.cnt,Called Cnt,camel,Unique number of CAP Called Party Number,integer,camel.calledCnt
+camel.imsi,IMSI,camel,CAP IMSI,termfield,camel.imsi
+camel.imsi.cnt,IMSI Cnt,camel,Unique number of CAP IMSI,integer,camel.imsiCnt
+cert.cnt,Cert Cnt,cert,Count of certificates,integer,certCnt
+cert.alt,Alt Name,cert,Certificate alternative names,lotermfield,cert.alt
+cert.alt.cnt,Alt Name Cnt,cert,Unique number of Certificate alternative names,integer,cert.altCnt
+cert.serial,Serial Number,cert,Serial Number,lotermfield,cert.serial
+cert.issuer.cn,Issuer CN,cert,Issuer's common name,lotermfield,cert.issuerCN
+cert.subject.cn,Subject CN,cert,Subject's common name,lotermfield,cert.subjectCN
+cert.issuer.on,Issuer ON,cert,Issuer's organization name,termfield,cert.issuerON
+cert.subject.on,Subject ON,cert,Subject's organization name,termfield,cert.subjectON
+cert.issuer.ou,Issuer Org Unit,cert,Issuer's organizational unit,termfield,cert.issuerOU
+cert.subject.ou,Subject Org Unit,cert,Subject's organizational unit,termfield,cert.subjectOU
+cert.hash,Hash,cert,SHA1 hash of entire certificate,lotermfield,cert.hash
+cert.notbefore,Not Before,cert,Certificate is not valid before this date,date,cert.notBefore
+cert.notafter,Not After,cert,Certificate is not valid after this date,date,cert.notAfter
+cert.validfor,Days Valid For,cert,Certificate is valid for this many days total,integer,cert.validDays
+cert.remainingDays,Days remaining,cert,Certificate is still valid for this many days,integer,cert.remainingDays
+cert.validforSeconds,Seconds Valid For,cert,Certificate is valid for this many seconds total,integer,cert.validSeconds
+cert.remainingSeconds,Seconds remaining,cert,Certificate is still valid for this many seconds,integer,cert.remainingSeconds
+cert.curve,Curve,cert,Curve Algorithm,termfield,cert.curve
+cert.publicAlgorithm,Public Algorithm,cert,Public Key Algorithm,termfield,cert.publicAlgorithm
+dcerpc.uuid,UUID,dcerpc,DCE/RPC interface UUID,termfield,dcerpc.uuid
+dcerpc.uuid.cnt,UUID Cnt,dcerpc,Unique number of DCE/RPC interface UUID,integer,dcerpc.uuidCnt
+dcerpc.interface,Interface,dcerpc,DCE/RPC interface name,termfield,dcerpc.interface
+dcerpc.interface.cnt,Interface Cnt,dcerpc,Unique number of DCE/RPC interface name,integer,dcerpc.interfaceCnt
+dcerpc.msgType,Message Type,dcerpc,DCE/RPC message type,termfield,dcerpc.msgType
+dcerpc.msgType.cnt,Message Type Cnt,dcerpc,Unique number of DCE/RPC message type,integer,dcerpc.msgTypeCnt
+dcerpc.opnum,Opnum,dcerpc,DCE/RPC operation number,integer,dcerpc.opnum
+dcerpc.opnum.cnt,Opnum Cnt,dcerpc,Unique number of DCE/RPC operation number,integer,dcerpc.opnumCnt
+dcerpc.version,Version,dcerpc,DCE/RPC interface version,termfield,dcerpc.version
+dcerpc.version.cnt,Version Cnt,dcerpc,Unique number of DCE/RPC interface version,integer,dcerpc.versionCnt
+dhcp.type,DHCP Type,dhcp,DHCP Type,uptermfield,dhcp.type
+dhcp.type.cnt,DHCP Type Cnt,dhcp,Unique number of DHCP Type,integer,dhcp.typeCnt
+dhcp.host,DHCP Host,dhcp,DHCP Host,lotermfield,dhcp.host
+dhcp.host.cnt,DHCP Host Cnt,dhcp,Unique number of DHCP Host,integer,dhcp.hostCnt
+dhcp.host.tokens,Hostname Tokens,dhcp,DHCP Hostname Tokens,lotextfield,dhcp.hostTokens
+dhcp.mac,DHCP Client MAC,dhcp,Client ethernet MAC,lotermfield,dhcp.mac
+dhcp.mac.cnt,DHCP Client MAC Cnt,dhcp,Unique number of Client ethernet MAC,integer,dhcp.macCnt
+dhcp.oui,DHCP Client OUI,dhcp,Client ethernet OUI,termfield,dhcp.oui
+dhcp.oui.cnt,DHCP Client OUI Cnt,dhcp,Unique number of Client ethernet OUI,integer,dhcp.ouiCnt
+dhcp.id,DHCP Transaction id,dhcp,DHCP Transaction Id,lotermfield,dhcp.id
+dhcp.id.cnt,DHCP Transaction id Cnt,dhcp,Unique number of DHCP Transaction Id,integer,dhcp.idCnt
+dhcp.classId,DHCP Vendor Class,dhcp,DHCP Vendor Class Identifier,termfield,dhcp.classId
+dhcp.classId.cnt,DHCP Vendor Class Cnt,dhcp,Unique number of DHCP Vendor Class Identifier,integer,dhcp.classIdCnt
+dhcp.requestIp,DHCP Request IP,dhcp,DHCP Requested IP Address,ip,dhcp.requestIp
+dhcp.requestIp.cnt,DHCP Request IP Cnt,dhcp,Unique number of DHCP Requested IP Address,integer,dhcp.requestIpCnt
+dhcp.requestIp.country,DHCP Request IP GEO,dhcp,GeoIP country string calculated from the DHCP Requested IP Address,uptermfield,dhcp.requestGEO
+dhcp.requestIp.asn,DHCP Request IP ASN,dhcp,GeoIP ASN string calculated from the DHCP Requested IP Address,termfield,dhcp.requestASN
+dhcp.requestIp.rir,DHCP Request IP RIR,dhcp,Regional Internet Registry string calculated from DHCP Requested IP Address,uptermfield,dhcp.requestRIR
+diameter.origin-host,Origin Host,diameter,Diameter Origin-Host AVP,termfield,diameter.originHost
+diameter.origin-host.cnt,Origin Host Cnt,diameter,Unique number of Diameter Origin-Host AVP,integer,diameter.originHostCnt
+diameter.origin-realm,Origin Realm,diameter,Diameter Origin-Realm AVP,termfield,diameter.originRealm
+diameter.origin-realm.cnt,Origin Realm Cnt,diameter,Unique number of Diameter Origin-Realm AVP,integer,diameter.originRealmCnt
+diameter.dest-host,Dest Host,diameter,Diameter Destination-Host AVP,termfield,diameter.destHost
+diameter.dest-host.cnt,Dest Host Cnt,diameter,Unique number of Diameter Destination-Host AVP,integer,diameter.destHostCnt
+diameter.dest-realm,Dest Realm,diameter,Diameter Destination-Realm AVP,termfield,diameter.destRealm
+diameter.dest-realm.cnt,Dest Realm Cnt,diameter,Unique number of Diameter Destination-Realm AVP,integer,diameter.destRealmCnt
+diameter.session-id,Session ID,diameter,Diameter Session-Id AVP,termfield,diameter.sessionId
+diameter.session-id.cnt,Session ID Cnt,diameter,Unique number of Diameter Session-Id AVP,integer,diameter.sessionIdCnt
+diameter.user,User,diameter,Diameter User-Name AVP,termfield,diameter.user
+diameter.user.cnt,User Cnt,diameter,Unique number of Diameter User-Name AVP,integer,diameter.userCnt
+diameter.cmd,Command,diameter,Diameter Command Code,termfield,diameter.cmd
+diameter.cmd.cnt,Command Cnt,diameter,Unique number of Diameter Command Code,integer,diameter.cmdCnt
+diameter.app,Application,diameter,Diameter Application ID,termfield,diameter.app
+diameter.app.cnt,Application Cnt,diameter,Unique number of Diameter Application ID,integer,diameter.appCnt
+diameter.resultCode,Result Code,diameter,"Diameter Result-Code AVP (268): 2xxx success, 3xxx protocol error, 4xxx transient failure, 5xxx permanent failure",integer,diameter.resultCode
+diameter.resultCode.cnt,Result Code Cnt,diameter,"Unique number of Diameter Result-Code AVP (268): 2xxx success, 3xxx protocol error, 4xxx transient failure, 5xxx permanent failure",integer,diameter.resultCodeCnt
+dnp3.src,DNP3 Source Address,dnp3,DNP3 Source Addresses,integer,dnp3.src
+dnp3.src.cnt,DNP3 Source Address Cnt,dnp3,Unique number of DNP3 Source Addresses,integer,dnp3.srcCnt
+dnp3.dst,DNP3 Destination Address,dnp3,DNP3 Destination Addresses,integer,dnp3.dst
+dnp3.dst.cnt,DNP3 Destination Address Cnt,dnp3,Unique number of DNP3 Destination Addresses,integer,dnp3.dstCnt
+dnp3.func,DNP3 Function Code,dnp3,DNP3 Function Codes,integer,dnp3.func
+dnp3.func.cnt,DNP3 Function Code Cnt,dnp3,Unique number of DNP3 Function Codes,integer,dnp3.funcCnt
+dnp3.funcName,DNP3 Function Name,dnp3,"DNP3 Function Code Names (Read, Write, DirectOperate, Response, etc)",termfield,dnp3.funcName
+dnp3.funcName.cnt,DNP3 Function Name Cnt,dnp3,"Unique number of DNP3 Function Code Names (Read, Write, DirectOperate, Response, etc)",integer,dnp3.funcNameCnt
+ip.dns,DNS IP,dns,IP from DNS result,ip,dns.ip
+ip.dns.cnt,DNS IP Cnt,dns,Unique number of IP from DNS result,integer,dns.ipCnt
+country.dns,DNS GEO,dns,GeoIP country string calculated from the IP from DNS result,uptermfield,dns.GEO
+asn.dns,DNS ASN,dns,GeoIP ASN string calculated from the IP from DNS result,termfield,dns.ASN
+rir.dns,DNS RIR,dns,Regional Internet Registry string calculated from IP from DNS result,uptermfield,dns.RIR
+ip.dns.nameserver,DNS NS IP,dns,IPs for nameservers,ip,dns.nameserverIp
+ip.dns.nameserver.cnt,DNS NS IP Cnt,dns,Unique number of IPs for nameservers,integer,dns.nameserverIpCnt
+country.dns.nameserver,DNS NS GEO,dns,GeoIP country string calculated from the IPs for nameservers,uptermfield,dns.nameserverGEO
+asn.dns.nameserver,DNS NS ASN,dns,GeoIP ASN string calculated from the IPs for nameservers,termfield,dns.nameserverASN
+rir.dns.nameserver,DNS NS RIR,dns,Regional Internet Registry string calculated from IPs for nameservers,uptermfield,dns.nameserverRIR
+ip.dns.mailserver,DNS MX IP,dns,IPs for mailservers,ip,dns.mailserverIp
+ip.dns.mailserver.cnt,DNS MX IP Cnt,dns,Unique number of IPs for mailservers,integer,dns.mailserverIpCnt
+country.dns.mailserver,DNS MX GEO,dns,GeoIP country string calculated from the IPs for mailservers,uptermfield,dns.mailserverGEO
+asn.dns.mailserver,DNS MX ASN,dns,GeoIP ASN string calculated from the IPs for mailservers,termfield,dns.mailserverASN
+rir.dns.mailserver,DNS MX RIR,dns,Regional Internet Registry string calculated from IPs for mailservers,uptermfield,dns.mailserverRIR
+ip.dns.all,DNS All IP,dns,Shorthand for ip.dns or ip.dns.nameserver,ip,dnsipall
+host.dns,DNS Host,dns,DNS lookup hostname,lotermfield,dns.host
+host.dns.cnt,DNS Host Cnt,dns,Unique number of DNS lookup hostname,integer,dns.hostCnt
+host.dns.tokens,Hostname Tokens,dns,DNS lookup hostname tokens,lotextfield,dns.hostTokens
+host.dns.nameserver,DNS NS Host,dns,Hostnames for Name Server,lotermfield,dns.nameserverHost
+host.dns.nameserver.cnt,DNS NS Host Cnt,dns,Unique number of Hostnames for Name Server,integer,dns.nameserverHostCnt
+host.dns.mailserver,DNS MX Host,dns,Hostnames for Mail Exchange Server,lotermfield,dns.mailserverHost
+host.dns.mailserver.cnt,DNS MX Host Cnt,dns,Unique number of Hostnames for Mail Exchange Server,integer,dns.mailserverHostCnt
+host.dns.all,DNS All Host,dns,Shorthand for host.dns or host.dns.nameserver,lotermfield,dnshostall
+dns.puny,DNS Puny,dns,DNS lookup punycode,lotermfield,dns.puny
+dns.puny.cnt,DNS Puny Cnt,dns,Unique number of DNS lookup punycode,integer,dns.punyCnt
+dns.status,DNS Status Code,dns,DNS lookup return code,uptermfield,dns.status
+dns.status.cnt,DNS Status Code Cnt,dns,Unique number of DNS lookup return code,integer,dns.statusCnt
+dns.opcode,DNS Op Code,dns,DNS lookup op code,uptermfield,dns.opcode
+dns.opcode.cnt,DNS Op Code Cnt,dns,Unique number of DNS lookup op code,integer,dns.opcodeCnt
+dns.query.type,DNS Query Type,dns,DNS lookup query type,uptermfield,dns.qt
+dns.query.type.cnt,DNS Query Type Cnt,dns,Unique number of DNS lookup query type,integer,dns.qtCnt
+dns.query.class,DNS Query Class,dns,DNS lookup query class,uptermfield,dns.qc
+dns.query.class.cnt,DNS Query Class Cnt,dns,Unique number of DNS lookup query class,integer,dns.qcCnt
+dns.query.host,DNS Query Host,dns,DNS Query Name,lotermfield,dns.queryHost
+dns.query.host.cnt,DNS Query Host Cnt,dns,Unique number of DNS Query Name,integer,dns.queryHostCnt
+dns.answer.cnt,DNS Answers Cnt,dns,Count of DNS Answers,integer,dns.answersCnt
+dns.answer.type,DNS Answer Type,dns,DNS Answer Type,uptermfield,dns.answers.type
+dns.answer.class,DNS Answer Class,dns,DNS Answer Class,uptermfield,dns.answers.class
+dns.answer.ttl,DNS Answer TTL,dns,DNS Answer TTL,integer,dns.answers.ttl
+dns.answer.ip,DNS Answer IP,dns,DNS Answer IP,ip,dns.answers.ip
+dns.answer.cname,DNS Answer CNAME,dns,DNS Answer CNAME,termfield,dns.answers.cname
+dns.answer.ns,DNS Answer NS,dns,DNS Answer NS,termfield,dns.answers.nameserver
+dns.answer.mx,DNS Answer MX,dns,DNS Answer MX,termfield,dns.answers.mx
+dns.answer.priority,DNS Answer Priority,dns,DNS Answer Priority,integer,dns.answers.priority
+dns.answer.https,DNS Answer HTTPS,dns,DNS Answer HTTPS,termfield,dns.answers.https
+dns.answer.txt,DNS Answer TXT,dns,DNS Answer TXT,termfield,dns.answers.txt
+dns.answer.caa,DNS Answer CAA,dns,DNS Answer CAA,termfield,dns.answers.caa
+dns.answer.rrsig,DNS Answer RRSIG,dns,DNS Answer RRSIG,termfield,dns.answers.rrsig
+dns.answer.nsec,DNS Answer NSEC,dns,DNS Answer NSEC,termfield,dns.answers.nsec
+dns.answer.ds,DNS Answer DS,dns,DNS Answer DS,termfield,dns.answers.ds
+dns.header_flags,DNS Header Flags,dns,DNS Header Flags,uptermfield,dns.headerFlags
+dns.header_flags.cnt,DNS Header Flags Cnt,dns,Unique number of DNS Header Flags,integer,dns.headerFlagsCnt
+dns.answer.name,DNS Name,dns,DNS Answer Name,termfield,dns.answers.name
+tls.ja4,JA4,tls,SSL/TLS JA4 field,lotermfield,tls.ja4
+tls.ja4_r,JA4_r,tls,SSL/TLS JA4_r field,lotermfield,tls.ja4_r
+enip.command,ENIP Command,enip,"ENIP encapsulation command (e.g. ListIdentity, RegisterSession, SendRRData)",termfield,enip.command
+enip.command.cnt,ENIP Command Cnt,enip,"Unique number of ENIP encapsulation command (e.g. ListIdentity, RegisterSession, SendRRData)",integer,enip.commandCnt
+enip.status,ENIP Status,enip,ENIP encapsulation status codes,integer,enip.status
+enip.status.cnt,ENIP Status Cnt,enip,Unique number of ENIP encapsulation status codes,integer,enip.statusCnt
+enip.service,CIP Service,enip,"CIP service name (e.g. Get_Attribute_Single, Read_Tag, Forward_Open)",termfield,enip.service
+enip.service.cnt,CIP Service Cnt,enip,"Unique number of CIP service name (e.g. Get_Attribute_Single, Read_Tag, Forward_Open)",integer,enip.serviceCnt
+enip.class,CIP Class,enip,"CIP object class name (e.g. Identity, Message Router)",termfield,enip.class
+enip.class.cnt,CIP Class Cnt,enip,"Unique number of CIP object class name (e.g. Identity, Message Router)",integer,enip.classCnt
+enip.vendor,ENIP Vendor,enip,"ENIP vendor name (looked up from vendor id, or Vendor-N if unknown)",termfield,enip.vendor
+enip.vendor.cnt,ENIP Vendor Cnt,enip,"Unique number of ENIP vendor name (looked up from vendor id, or Vendor-N if unknown)",integer,enip.vendorCnt
+enip.product,ENIP Product,enip,ENIP product name string from a ListIdentity response,termfield,enip.product
+enip.product.cnt,ENIP Product Cnt,enip,Unique number of ENIP product name string from a ListIdentity response,integer,enip.productCnt
+enip.device-type,ENIP Device Type,enip,ENIP device type from ListIdentity,termfield,enip.deviceType
+enip.device-type.cnt,ENIP Device Type Cnt,enip,Unique number of ENIP device type from ListIdentity,integer,enip.deviceTypeCnt
+esis.type,Type,esis,ES-IS PDU Type,lotermfield,esis.type
+ftp.command,Command,ftp,FTP command,uptermfield,ftp.command
+ftp.command.cnt,Command Cnt,ftp,Unique number of FTP command,integer,ftp.commandCnt
+ftp.filename,Filename,ftp,FTP filename argument (RETR/STOR/DELE/RNFR/RNTO/MKD/RMD/SIZE/MDTM),termfield,ftp.filename
+ftp.filename.cnt,Filename Cnt,ftp,Unique number of FTP filename argument (RETR/STOR/DELE/RNFR/RNTO/MKD/RMD/SIZE/MDTM),integer,ftp.filenameCnt
+ftp.responseCode,Response Code,ftp,FTP response code,integer,ftp.responseCode
+ftp.responseCode.cnt,Response Code Cnt,ftp,Unique number of FTP response code,integer,ftp.responseCodeCnt
+ftp.banner,Banner,ftp,FTP server welcome banner,termfield,ftp.banner
+ftp.banner.cnt,Banner Cnt,ftp,Unique number of FTP server welcome banner,integer,ftp.bannerCnt
+host.http,HTTP Host,http,HTTP host header field,lotermfield,http.host
+host.http.tokens,HTTP Host Tokens,http,HTTP host Tokens header field,lotextfield,http.hostTokens
+http.uri,HTTP URI,http,URIs for request,termfield,http.uri
+http.uri.cnt,HTTP URI Cnt,http,Unique number of URIs for request,integer,http.uriCnt
+http.uri.tokens,HTTP URI Tokens,http,URIs Tokens for request,lotextfield,http.uriTokens
+ip.xff,HTTP XFF IP,http,X-Forwarded-For Header,ip,http.xffIp
+ip.xff.cnt,HTTP XFF IP Cnt,http,Unique number of X-Forwarded-For Header,integer,http.xffIpCnt
+country.xff,HTTP XFF GEO,http,GeoIP country string calculated from the X-Forwarded-For Header,uptermfield,http.xffGEO
+asn.xff,HTTP XFF ASN,http,GeoIP ASN string calculated from the X-Forwarded-For Header,termfield,http.xffASN
+rir.xff,HTTP XFF RIR,http,Regional Internet Registry string calculated from X-Forwarded-For Header,uptermfield,http.xffRIR
+http.user-agent,HTTP Useragent,http,User-Agent Header,termfield,http.useragent
+http.user-agent.cnt,HTTP Useragent Cnt,http,Unique number of User-Agent Header,integer,http.useragentCnt
+http.user-agent.tokens,HTTP Useragent Tokens,http,User-Agent Header Tokens,lotextfield,http.useragentTokens
+http.hasheader.src,HTTP Src Header,http,Request has header present,lotermfield,http.requestHeader
+http.hasheader.src.cnt,HTTP Src Header Cnt,http,Unique number of Request has header present,integer,http.requestHeaderCnt
+http.hasheader.dst,HTTP Dst Header,http,Response has header present,lotermfield,http.responseHeader
+http.hasheader.dst.cnt,HTTP Dst Header Cnt,http,Unique number of Response has header present,integer,http.responseHeaderCnt
+http.hasheader.src.value,Request Header Values,http,Contains request header values,lotermfield,http.requestHeaderValue
+http.hasheader.src.value.cnt,Request Header Values Cnt,http,Unique number of Contains request header values,integer,http.requestHeaderValueCnt
+http.hasheader.dst.value,Response Header Values,http,Contains response header values,lotermfield,http.responseHeaderValue
+http.hasheader.dst.value.cnt,Response Header Values Cnt,http,Unique number of Contains response header values,integer,http.responseHeaderValueCnt
+http.hasheader,Has Src or Dst Header,http,Shorthand for http.hasheader.src or http.hasheader.dst,lotermfield,hhall
+http.hasheader.value,Has Value in Src or Dst Header,http,Shorthand for http.hasheader.src.value or http.hasheader.dst.value,lotermfield,hhvalueall
+http.md5,HTTP Body MD5,http,MD5 of http body response,lotermfield,http.md5
+http.version,HTTP Version,http,HTTP version number,termfield,httpversion
+http.version.src,HTTP Src Version,http,Request HTTP version number,termfield,http.clientVersion
+http.version.src.cnt,HTTP Src Version Cnt,http,Unique number of Request HTTP version number,integer,http.clientVersionCnt
+http.version.dst,HTTP Dst Version,http,Response HTTP version number,termfield,http.serverVersion
+http.version.dst.cnt,HTTP Dst Version Cnt,http,Unique number of Response HTTP version number,integer,http.serverVersionCnt
+http.uri.path,HTTP URI Path,http,Path portion of URI,termfield,http.path
+http.uri.path.cnt,HTTP URI Path Cnt,http,Unique number of Path portion of URI,integer,http.pathCnt
+http.uri.key,HTTP QS Keys,http,Keys from query string of URI,termfield,http.key
+http.uri.key.cnt,HTTP QS Keys Cnt,http,Unique number of Keys from query string of URI,integer,http.keyCnt
+http.uri.value,HTTP QS Values,http,Values from query string of URI,termfield,http.value
+http.uri.value.cnt,HTTP QS Values Cnt,http,Unique number of Values from query string of URI,integer,http.valueCnt
+http.cookie.key,HTTP Cookie Keys,http,The keys to cookies sent up in requests,termfield,http.cookieKey
+http.cookie.key.cnt,HTTP Cookie Keys Cnt,http,Unique number of The keys to cookies sent up in requests,integer,http.cookieKeyCnt
+http.cookie.value,HTTP Cookie Values,http,The values to cookies sent up in requests,termfield,http.cookieValue
+http.cookie.value.cnt,HTTP Cookie Values Cnt,http,Unique number of The values to cookies sent up in requests,integer,http.cookieValueCnt
+http.method,HTTP Request Method,http,HTTP Request Method,termfield,http.method
+http.bodymagic,HTTP Body Magic,http,The content type of body determined by libfile/magic,termfield,http.bodyMagic
+http.user,HTTP User,http,HTTP Auth User,termfield,http.user
+http.user.cnt,HTTP User Cnt,http,Unique number of HTTP Auth User,integer,http.userCnt
+http.authtype,HTTP Auth Type,http,HTTP Auth Type,lotermfield,http.authType
+http.authtype.cnt,HTTP Auth Type Cnt,http,Unique number of HTTP Auth Type,integer,http.authTypeCnt
+http.statuscode,HTTP Status Code,http,Response HTTP numeric status code,integer,http.statuscode
+http.reqbody,HTTP Request Body,http,HTTP Request Body,termfield,http.requestBody
+http.method.DELETE,Method DELETE Count,http,Number of DELETE method calls in session,integer,http.method-DELETE
+http.method.GET,Method GET Count,http,Number of GET method calls in session,integer,http.method-GET
+http.method.HEAD,Method HEAD Count,http,Number of HEAD method calls in session,integer,http.method-HEAD
+http.method.POST,Method POST Count,http,Number of POST method calls in session,integer,http.method-POST
+http.method.PUT,Method PUT Count,http,Number of PUT method calls in session,integer,http.method-PUT
+http.method.CONNECT,Method CONNECT Count,http,Number of CONNECT method calls in session,integer,http.method-CONNECT
+http.method.OPTIONS,Method OPTIONS Count,http,Number of OPTIONS method calls in session,integer,http.method-OPTIONS
+http.request.referer,http.request.referer,http,Request header referer,termfield,http.request-referer
+http.request.referer.cnt,http.request.referer Cnt,http,Unique number of Request header referer,integer,http.request-refererCnt
+http.request.authorization,http.request.authorization,http,Request header authorization,termfield,http.request-authorization
+http.request.authorization.cnt,http.request.authorization Cnt,http,Unique number of Request header authorization,integer,http.request-authorizationCnt
+http.request.content-type,http.request.content-type,http,Request header content-type,termfield,http.request-content-type
+http.request.content-type.cnt,http.request.content-type Cnt,http,Unique number of Request header content-type,integer,http.request-content-typeCnt
+http.request.origin,http.request.origin,http,Request header origin,termfield,http.request-origin
+http.response.location,http.response.location,http,Response header location,termfield,http.response-location
+http.response.server,http.response.server,http,Response header server,termfield,http.response-server
+http.response.content-type,http.response.content-type,http,Response header content-type,termfield,http.response-content-type
+http.response.content-type.cnt,http.response.content-type Cnt,http,Unique number of Response header content-type,integer,http.response-content-typeCnt
+http.method.cnt,HTTP Request Method Cnt,http,Unique number of HTTP Request Method,integer,http.methodCnt
+http.statuscode.cnt,HTTP Status Code Cnt,http,Unique number of Response HTTP numeric status code,integer,http.statuscodeCnt
+host.http.cnt,HTTP Host Cnt,http,Unique number of HTTP host header field,integer,http.hostCnt
+http.bodymagic.cnt,HTTP Body Magic Cnt,http,Unique number of The content type of body determined by libfile/magic,integer,http.bodyMagicCnt
+http.md5.cnt,HTTP Body MD5 Cnt,http,Unique number of MD5 of http body response,integer,http.md5Cnt
+icmp.type,ICMP Type,general,ICMP type field values,integer,icmp.type
+icmp.code,ICMP Code,general,ICMP code field values,integer,icmp.code
+email.src,Sender,email,Email from address,lotermfield,email.src
+email.dst,Receiver,email,Email to address,lotermfield,email.dst
+email.subject,Subject,email,Email subject header,termfield,email.subject
+email.folder,Folder,email,Email folder/mailbox name,termfield,email.folder
+email.folder.cnt,Folder Cnt,email,Unique number of Email folder/mailbox name,integer,email.folderCnt
+irc.nick,Nickname,irc,Nicknames set,termfield,irc.nick
+irc.nick.cnt,Nickname Cnt,irc,Unique number of Nicknames set,integer,irc.nickCnt
+irc.channel,Channel,irc,Channels joined,termfield,irc.channel
+irc.channel.cnt,Channel Cnt,irc,Unique number of Channels joined,integer,irc.channelCnt
+isakmp.initiator-spi,Initiator SPI,isakmp,ISAKMP initiator security parameter index,termfield,isakmp.initiatorSpi
+isakmp.initiator-spi.cnt,Initiator SPI Cnt,isakmp,Unique number of ISAKMP initiator security parameter index,integer,isakmp.initiatorSpiCnt
+isakmp.responder-spi,Responder SPI,isakmp,ISAKMP responder security parameter index,termfield,isakmp.responderSpi
+isakmp.responder-spi.cnt,Responder SPI Cnt,isakmp,Unique number of ISAKMP responder security parameter index,integer,isakmp.responderSpiCnt
+isakmp.version,Version,isakmp,ISAKMP version,termfield,isakmp.version
+isakmp.version.cnt,Version Cnt,isakmp,Unique number of ISAKMP version,integer,isakmp.versionCnt
+isakmp.exchange-type,Exchange Type,isakmp,ISAKMP exchange type,termfield,isakmp.exchangeType
+isakmp.exchange-type.cnt,Exchange Type Cnt,isakmp,Unique number of ISAKMP exchange type,integer,isakmp.exchangeTypeCnt
+isakmp.vendor-id,Vendor ID,isakmp,ISAKMP vendor identifier,termfield,isakmp.vendorId
+isakmp.vendor-id.cnt,Vendor ID Cnt,isakmp,Unique number of ISAKMP vendor identifier,integer,isakmp.vendorIdCnt
+isakmp.encryption,Encryption,isakmp,ISAKMP encryption algorithm,termfield,isakmp.encryption
+isakmp.encryption.cnt,Encryption Cnt,isakmp,Unique number of ISAKMP encryption algorithm,integer,isakmp.encryptionCnt
+isakmp.hash,Hash/PRF,isakmp,ISAKMP hash or PRF algorithm,termfield,isakmp.hash
+isakmp.hash.cnt,Hash/PRF Cnt,isakmp,Unique number of ISAKMP hash or PRF algorithm,integer,isakmp.hashCnt
+isakmp.dh-group,DH Group,isakmp,ISAKMP Diffie-Hellman group,termfield,isakmp.dhGroup
+isakmp.dh-group.cnt,DH Group Cnt,isakmp,Unique number of ISAKMP Diffie-Hellman group,integer,isakmp.dhGroupCnt
+isakmp.auth-method,Auth Method,isakmp,ISAKMP authentication method,termfield,isakmp.authMethod
+isakmp.auth-method.cnt,Auth Method Cnt,isakmp,Unique number of ISAKMP authentication method,integer,isakmp.authMethodCnt
+isis.msgType,isis.msgType,isis,ISIS Msg Type field,lotermfield,isis.msgType
+krb5.realm,Realm,krb5,Kerberos 5 Realm,termfield,krb5.realm
+krb5.realm.cnt,Realm Cnt,krb5,Unique number of Kerberos 5 Realm,integer,krb5.realmCnt
+krb5.cname,cname,krb5,Kerberos 5 cname,termfield,krb5.cname
+krb5.cname.cnt,cname Cnt,krb5,Unique number of Kerberos 5 cname,integer,krb5.cnameCnt
+krb5.sname,sname,krb5,Kerberos 5 sname,termfield,krb5.sname
+krb5.sname.cnt,sname Cnt,krb5,Unique number of Kerberos 5 sname,integer,krb5.snameCnt
+krb5.etype,Encryption Type,krb5,Kerberos 5 encryption type,termfield,krb5.etype
+krb5.etype.cnt,Encryption Type Cnt,krb5,Unique number of Kerberos 5 encryption type,integer,krb5.etypeCnt
+krb5.error,Error Code,krb5,Kerberos 5 error code,termfield,krb5.error
+krb5.error.cnt,Error Code Cnt,krb5,Unique number of Kerberos 5 error code,integer,krb5.errorCnt
+ldap.authtype,Auth Type,ldap,The auth type of ldap bind,termfield,ldap.authtype
+ldap.authtype.cnt,Auth Type Cnt,ldap,Unique number of The auth type of ldap bind,integer,ldap.authtypeCnt
+ldap.bindname,Bind Name,ldap,The bind name of ldap bind,termfield,ldap.bindname
+ldap.bindname.cnt,Bind Name Cnt,ldap,Unique number of The bind name of ldap bind,integer,ldap.bindnameCnt
+m3ua.si,Service Indicator,m3ua,MTP3 Service Indicator,integer,m3ua.si
+m3ua.si.cnt,Service Indicator Cnt,m3ua,Unique number of MTP3 Service Indicator,integer,m3ua.siCnt
+modbus.unitid,Modbus Unit ID,modbus,Modbus Unit ID,integer,modbus.unitid
+modbus.transactionid,Modbus Transaction IDs,modbus,Modbus Transaction IDs,integer,modbus.transactionid
+modbus.transactionid.cnt,Modbus Transaction IDs Cnt,modbus,Unique number of Modbus Transaction IDs,integer,modbus.transactionidCnt
+modbus.protocolid,Modbus Protocol ID,modbus,Modbus Protocol ID (should always be 0),integer,modbus.protocolid
+modbus.funccode,Modbus Function Code,modbus,Modbus Function Codes,integer,modbus.funccode
+modbus.funccode.cnt,Modbus Function Code Cnt,modbus,Unique number of Modbus Function Codes,integer,modbus.funccodeCnt
+modbus.exccode,Modbus Exception Code,modbus,Modbus Exception Codes,integer,modbus.exccode
+modbus.exccode.cnt,Modbus Exception Code Cnt,modbus,Unique number of Modbus Exception Codes,integer,modbus.exccodeCnt
+mqtt.clientId,Client ID,mqtt,MQTT client identifier,termfield,mqtt.clientId
+mqtt.clientId.cnt,Client ID Cnt,mqtt,Unique number of MQTT client identifier,integer,mqtt.clientIdCnt
+mqtt.topic,Topic,mqtt,MQTT topic,termfield,mqtt.topic
+mqtt.topic.cnt,Topic Cnt,mqtt,Unique number of MQTT topic,integer,mqtt.topicCnt
+mqtt.version,Version,mqtt,MQTT protocol version,termfield,mqtt.version
+mqtt.version.cnt,Version Cnt,mqtt,Unique number of MQTT protocol version,integer,mqtt.versionCnt
+mqtt.type,Type,mqtt,MQTT packet type,termfield,mqtt.type
+mqtt.type.cnt,Type Cnt,mqtt,Unique number of MQTT packet type,integer,mqtt.typeCnt
+mqtt.willTopic,Will Topic,mqtt,MQTT last will topic,termfield,mqtt.willTopic
+mqtt.willTopic.cnt,Will Topic Cnt,mqtt,Unique number of MQTT last will topic,integer,mqtt.willTopicCnt
+mqtt.qos,QoS,mqtt,MQTT Quality of Service level,integer,mqtt.qos
+mqtt.qos.cnt,QoS Cnt,mqtt,Unique number of MQTT Quality of Service level,integer,mqtt.qosCnt
+mqtt.flags,Flags,mqtt,MQTT connection flags,termfield,mqtt.flags
+mqtt.flags.cnt,Flags Cnt,mqtt,Unique number of MQTT connection flags,integer,mqtt.flagsCnt
+mqtt.connackCode,CONNACK Code,mqtt,MQTT CONNACK return/reason code (0=Accepted; non-zero=rejected/error),integer,mqtt.connackCode
+mqtt.connackCode.cnt,CONNACK Code Cnt,mqtt,Unique number of MQTT CONNACK return/reason code (0=Accepted; non-zero=rejected/error),integer,mqtt.connackCodeCnt
+mysql.user,User,mysql,MySQL user name,lotermfield,mysql.user
+mysql.ver,Version,mysql,MySQL server version string,termfield,mysql.version
+nbns.name,Name,nbns,NetBIOS names,termfield,nbns.name
+nbns.name.cnt,Name Cnt,nbns,Unique number of NetBIOS names,integer,nbns.nameCnt
+nbns.queryType,Query Type,nbns,NetBIOS query types,termfield,nbns.queryType
+nbns.queryType.cnt,Query Type Cnt,nbns,Unique number of NetBIOS query types,integer,nbns.queryTypeCnt
+nbns.queryHost,Query Host,nbns,NetBIOS hosts being queried,termfield,nbns.queryHost
+nbns.queryHost.cnt,Query Host Cnt,nbns,Unique number of NetBIOS hosts being queried,integer,nbns.queryHostCnt
+nbns.host,Host,nbns,NetBIOS hosts from responses,termfield,nbns.host
+nbns.host.cnt,Host Cnt,nbns,Unique number of NetBIOS hosts from responses,integer,nbns.hostCnt
+nbns.ip,IP,nbns,IP addresses from NetBIOS responses,ip,nbns.ip
+nbns.ip.cnt,IP Cnt,nbns,Unique number of IP addresses from NetBIOS responses,integer,nbns.ipCnt
+nbns.ip.country,IP GEO,nbns,GeoIP country string calculated from the IP addresses from NetBIOS responses,uptermfield,nbns.GEO
+nbns.ip.asn,IP ASN,nbns,GeoIP ASN string calculated from the IP addresses from NetBIOS responses,termfield,nbns.ASN
+nbns.ip.rir,IP RIR,nbns,Regional Internet Registry string calculated from IP addresses from NetBIOS responses,uptermfield,nbns.RIR
+ntp.version,Version,ntp,NTP version,integer,ntp.version
+ntp.version.cnt,Version Cnt,ntp,Unique number of NTP version,integer,ntp.versionCnt
+ntp.mode,Mode,ntp,NTP mode,termfield,ntp.mode
+ntp.mode.cnt,Mode Cnt,ntp,Unique number of NTP mode,integer,ntp.modeCnt
+ntp.stratum,Stratum,ntp,NTP stratum,termfield,ntp.stratum
+ntp.stratum.cnt,Stratum Cnt,ntp,Unique number of NTP stratum,integer,ntp.stratumCnt
+ntp.ref-id,Reference ID,ntp,NTP reference identifier,termfield,ntp.refId
+ntp.ref-id.cnt,Reference ID Cnt,ntp,Unique number of NTP reference identifier,integer,ntp.refIdCnt
+oracle.user,User,oracle,Oracle User,lotermfield,oracle.user
+oracle.host,Oracle Host,oracle,Oracle Host,lotermfield,oracle.host
+oracle.host.tokens,Hostname Tokens,oracle,Oracle Hostname Tokens,lotextfield,oracle.hostTokens
+oracle.service,Service,oracle,Oracle Service,lotermfield,oracle.service
+ospf.msgType,OSPF Msg Type,ospf,OSPF packet type,lotermfield,ospf.msgType
+ospf.routerId,Router ID,ospf,OSPF Router ID,termfield,ospf.routerId
+ospf.areaId,Area ID,ospf,OSPF Area ID,termfield,ospf.areaId
+pana.user,User,pana,PANA/EAP User Identity,termfield,pana.user
+pana.user.cnt,User Cnt,pana,Unique number of PANA/EAP User Identity,integer,pana.userCnt
+pana.msg-type,Msg Type,pana,PANA Message Type,termfield,pana.msgType
+pana.msg-type.cnt,Msg Type Cnt,pana,Unique number of PANA Message Type,integer,pana.msgTypeCnt
+pana.session-id,Session ID,pana,PANA Session ID,termfield,pana.sessionId
+pana.session-id.cnt,Session ID Cnt,pana,Unique number of PANA Session ID,integer,pana.sessionIdCnt
+postgresql.user,User,postgresql,PostgreSQL user name,termfield,postgresql.user
+postgresql.db,Database,postgresql,PostgreSQL database,termfield,postgresql.db
+postgresql.app,Application,postgresql,PostgreSQL application,termfield,postgresql.app
+ptp.msgType,Message Type,ptp,PTP message type,termfield,ptp.msgType
+ptp.msgType.cnt,Message Type Cnt,ptp,Unique number of PTP message type,integer,ptp.msgTypeCnt
+ptp.clockId,Clock ID,ptp,PTP source clock identity,termfield,ptp.clockId
+ptp.clockId.cnt,Clock ID Cnt,ptp,Unique number of PTP source clock identity,integer,ptp.clockIdCnt
+host.quic,QUIC Hostname,quic,QUIC host header field,lotermfield,quic.host
+host.quic.cnt,QUIC Hostname Cnt,quic,Unique number of QUIC host header field,integer,quic.hostCnt
+host.quic.tokens,Hostname Tokens,quic,QUIC host tokens header field,lotextfield,quic.hostTokens
+quic.user-agent,User-Agent,quic,User-Agent,termfield,quic.useragent
+quic.user-agent.cnt,User-Agent Cnt,quic,Unique number of User-Agent,integer,quic.useragentCnt
+quic.version,Version,quic,QUIC Version,termfield,quic.version
+quic.version.cnt,Version Cnt,quic,Unique number of QUIC Version,integer,quic.versionCnt
+radius.user,User,radius,RADIUS user,termfield,radius.user
+radius.mac,MAC,radius,RADIUS MAC,lotermfield,radius.mac
+radius.mac.cnt,MAC Cnt,radius,Unique number of RADIUS MAC,integer,radius.macCnt
+radius.endpoint-ip,Endpoint IP,radius,RADIUS endpoint IP addresses for session,ip,radius.endpointIp
+radius.endpoint-ip.cnt,Endpoint IP Cnt,radius,Unique number of RADIUS endpoint IP addresses for session,integer,radius.endpointIpCnt
+radius.endpoint-ip.country,Endpoint IP GEO,radius,GeoIP country string calculated from the RADIUS endpoint IP addresses for session,uptermfield,radius.endpointGEO
+radius.endpoint-ip.asn,Endpoint IP ASN,radius,GeoIP ASN string calculated from the RADIUS endpoint IP addresses for session,termfield,radius.endpointASN
+radius.endpoint-ip.rir,Endpoint IP RIR,radius,Regional Internet Registry string calculated from RADIUS endpoint IP addresses for session,uptermfield,radius.endpointRIR
+radius.framed-ip,Framed IP,radius,RADIUS framed IP addresses for session,ip,radius.framedIp
+radius.framed-ip.cnt,Framed IP Cnt,radius,Unique number of RADIUS framed IP addresses for session,integer,radius.framedIpCnt
+radius.framed-ip.country,Framed IP GEO,radius,GeoIP country string calculated from the RADIUS framed IP addresses for session,uptermfield,radius.framedGEO
+radius.framed-ip.asn,Framed IP ASN,radius,GeoIP ASN string calculated from the RADIUS framed IP addresses for session,termfield,radius.framedASN
+radius.framed-ip.rir,Framed IP RIR,radius,Regional Internet Registry string calculated from RADIUS framed IP addresses for session,uptermfield,radius.framedRIR
+radius.msgType,Msg Type,radius,RADIUS message type,lotermfield,radius.msgType
+radius.msgType.cnt,Msg Type Cnt,radius,Unique number of RADIUS message type,integer,radius.msgTypeCnt
+radius.nasIp,NAS IP,radius,RADIUS NAS IP address,ip,radius.nasIp
+radius.nasIp.cnt,NAS IP Cnt,radius,Unique number of RADIUS NAS IP address,integer,radius.nasIpCnt
+radius.nasIp.country,NAS IP GEO,radius,GeoIP country string calculated from the RADIUS NAS IP address,uptermfield,radius.nasGEO
+radius.nasIp.asn,NAS IP ASN,radius,GeoIP ASN string calculated from the RADIUS NAS IP address,termfield,radius.nasASN
+radius.nasIp.rir,NAS IP RIR,radius,Regional Internet Registry string calculated from RADIUS NAS IP address,uptermfield,radius.nasRIR
+radius.nasPort,NAS Port,radius,RADIUS NAS port,integer,radius.nasPort
+radius.nasPort.cnt,NAS Port Cnt,radius,Unique number of RADIUS NAS port,integer,radius.nasPortCnt
+rdp.client-name,Client Name,rdp,RDP client computer name,termfield,rdp.clientName
+rdp.client-name.cnt,Client Name Cnt,rdp,Unique number of RDP client computer name,integer,rdp.clientNameCnt
+rdp.keyboard-layout,Keyboard Layout,rdp,RDP client keyboard layout,termfield,rdp.keyboardLayout
+rdp.keyboard-layout.cnt,Keyboard Layout Cnt,rdp,Unique number of RDP client keyboard layout,integer,rdp.keyboardLayoutCnt
+rdp.client-build,Client Build,rdp,RDP client build number,integer,rdp.clientBuild
+rdp.client-build.cnt,Client Build Cnt,rdp,Unique number of RDP client build number,integer,rdp.clientBuildCnt
+rdp.requested-protocols,Requested Protocols,rdp,RDP requested security protocols,termfield,rdp.requestedProtocols
+rdp.requested-protocols.cnt,Requested Protocols Cnt,rdp,Unique number of RDP requested security protocols,integer,rdp.requestedProtocolsCnt
+rdp.selected-protocol,Selected Protocol,rdp,RDP selected security protocol,termfield,rdp.selectedProtocol
+rdp.selected-protocol.cnt,Selected Protocol Cnt,rdp,Unique number of RDP selected security protocol,integer,rdp.selectedProtocolCnt
+s7comm.rosctr,S7comm ROSCTR,s7comm,"S7comm Remote Operating Service Control (1=Job, 2=Ack, 3=Ack_Data, 7=Userdata)",integer,s7comm.rosctr
+s7comm.rosctr.cnt,S7comm ROSCTR Cnt,s7comm,"Unique number of S7comm Remote Operating Service Control (1=Job, 2=Ack, 3=Ack_Data, 7=Userdata)",integer,s7comm.rosctrCnt
+s7comm.func,S7comm Function Code,s7comm,S7comm Function Codes,integer,s7comm.func
+s7comm.func.cnt,S7comm Function Code Cnt,s7comm,Unique number of S7comm Function Codes,integer,s7comm.funcCnt
+s7comm.funcName,S7comm Function Name,s7comm,"S7comm Function Names (Read Var, Write Var, PLC Stop, etc)",termfield,s7comm.funcName
+s7comm.funcName.cnt,S7comm Function Name Cnt,s7comm,"Unique number of S7comm Function Names (Read Var, Write Var, PLC Stop, etc)",integer,s7comm.funcNameCnt
+s7comm.pduref,S7comm PDU Reference,s7comm,S7comm PDU Reference IDs,integer,s7comm.pduref
+s7comm.pduref.cnt,S7comm PDU Reference Cnt,s7comm,Unique number of S7comm PDU Reference IDs,integer,s7comm.pdurefCnt
+s7comm.errorClass,S7comm Error Class,s7comm,S7comm Error Classes,integer,s7comm.errorClass
+s7comm.errorClass.cnt,S7comm Error Class Cnt,s7comm,Unique number of S7comm Error Classes,integer,s7comm.errorClassCnt
+s7comm.errorCode,S7comm Error Code,s7comm,S7comm Error Codes,integer,s7comm.errorCode
+s7comm.errorCode.cnt,S7comm Error Code Cnt,s7comm,Unique number of S7comm Error Codes,integer,s7comm.errorCodeCnt
+s7comm.opcode,S7comm-plus Opcode,s7comm,"S7comm-plus Opcodes (0x31=Request, 0x32=Response, 0x33=Notification)",integer,s7comm.opcode
+s7comm.opcode.cnt,S7comm-plus Opcode Cnt,s7comm,"Unique number of S7comm-plus Opcodes (0x31=Request, 0x32=Response, 0x33=Notification)",integer,s7comm.opcodeCnt
+sctp.protoId,Proto Id,sctp,SCTP protocol id,integer,sctp.protoId
+sip.method,Method,sip,"SIP method (INVITE, BYE, REGISTER, etc.)",termfield,sip.method
+sip.method.cnt,Method Cnt,sip,"Unique number of SIP method (INVITE, BYE, REGISTER, etc.)",integer,sip.methodCnt
+sip.statuscode,Status Code,sip,SIP response status codes,integer,sip.statuscode
+sip.statuscode.cnt,Status Code Cnt,sip,Unique number of SIP response status codes,integer,sip.statuscodeCnt
+sip.callid,Call ID,sip,SIP Call-ID header,termfield,sip.callid
+sip.callid.cnt,Call ID Cnt,sip,Unique number of SIP Call-ID header,integer,sip.callidCnt
+sip.from,From,sip,SIP From header,termfield,sip.from
+sip.from.cnt,From Cnt,sip,Unique number of SIP From header,integer,sip.fromCnt
+sip.to,To,sip,SIP To header,termfield,sip.to
+sip.to.cnt,To Cnt,sip,Unique number of SIP To header,integer,sip.toCnt
+sip.user-agent,User-Agent,sip,SIP User-Agent header,termfield,sip.useragent
+sip.user-agent.cnt,User-Agent Cnt,sip,Unique number of SIP User-Agent header,integer,sip.useragentCnt
+sip.via,Via,sip,SIP Via headers,termfield,sip.via
+sip.via.cnt,Via Cnt,sip,Unique number of SIP Via headers,integer,sip.viaCnt
+sip.contact,Contact,sip,SIP Contact header,termfield,sip.contact
+sip.contact.cnt,Contact Cnt,sip,Unique number of SIP Contact header,integer,sip.contactCnt
+sip.user,User,sip,SIP user from URI or auth,termfield,sip.user
+sip.user.cnt,User Cnt,sip,Unique number of SIP user from URI or auth,integer,sip.userCnt
+smb.share,Share,smb,SMB shares connected to,termfield,smb.share
+smb.share.cnt,Share Cnt,smb,Unique number of SMB shares connected to,integer,smb.shareCnt
+smb.fn,Filename,smb,"SMB files opened, created, deleted",termfield,smb.filename
+smb.fn.cnt,Filename Cnt,smb,"Unique number of SMB files opened, created, deleted",integer,smb.filenameCnt
+smb.os,OS,smb,SMB OS information,termfield,smb.os
+smb.os.cnt,OS Cnt,smb,Unique number of SMB OS information,integer,smb.osCnt
+smb.domain,Domain,smb,SMB domain,termfield,smb.domain
+smb.domain.cnt,Domain Cnt,smb,Unique number of SMB domain,integer,smb.domainCnt
+smb.ver,Version,smb,SMB Version information,termfield,smb.version
+smb.ver.cnt,Version Cnt,smb,Unique number of SMB Version information,integer,smb.versionCnt
+smb.dialect,Dialect,smb,SMB Dialect information,termfield,smb.dialect
+smb.user,User,smb,SMB User,termfield,smb.user
+smb.user.cnt,User Cnt,smb,Unique number of SMB User,integer,smb.userCnt
+host.smb,SMB Host,smb,SMB Host name,termfield,smb.host
+host.smb.cnt,SMB Host Cnt,smb,Unique number of SMB Host name,integer,smb.hostCnt
+host.smb.tokens,Hostname Tokens,smb,SMB Host Tokens,lotextfield,smb.hostTokens
+host.email,Email Hostname,email,Email hostnames,lotermfield,email.host
+host.email.cnt,Email Hostname Cnt,email,Unique number of Email hostnames,integer,email.hostCnt
+host.email.tokens,Hostname Tokens,email,Email Hostname Tokens,lotextfield,email.hostTokens
+email.x-mailer,X-Mailer Header,email,Email X-Mailer header,termfield,email.useragent
+email.x-mailer.cnt,X-Mailer Header Cnt,email,Unique number of Email X-Mailer header,integer,email.useragentCnt
+email.src.cnt,Sender Cnt,email,Unique number of Email from address,integer,email.srcCnt
+email.dst.cnt,Receiver Cnt,email,Unique number of Email to address,integer,email.dstCnt
+email.subject.cnt,Subject Cnt,email,Unique number of Email subject header,integer,email.subjectCnt
+email.message-id,Id,email,Email Message-Id header,termfield,email.id
+email.message-id.cnt,Id Cnt,email,Unique number of Email Message-Id header,integer,email.idCnt
+email.content-type,Content-Type,email,Email content-type header,termfield,email.contentType
+email.content-type.cnt,Content-Type Cnt,email,Unique number of Email content-type header,integer,email.contentTypeCnt
+email.mime-version,Mime-Version,email,Email Mime-Header header,termfield,email.mimeVersion
+email.mime-version.cnt,Mime-Version Cnt,email,Unique number of Email Mime-Header header,integer,email.mimeVersionCnt
+email.fn,Filenames,email,Email attachment filenames,termfield,email.filename
+email.fn.cnt,Filenames Cnt,email,Unique number of Email attachment filenames,integer,email.filenameCnt
+email.md5,Attach MD5s,email,Email attachment MD5s,termfield,email.md5
+email.md5.cnt,Attach MD5s Cnt,email,Unique number of Email attachment MD5s,integer,email.md5Cnt
+email.file-content-type,Attach Content-Type,email,Email attachment content types,termfield,email.fileContentType
+email.file-content-type.cnt,Attach Content-Type Cnt,email,Unique number of Email attachment content types,integer,email.fileContentTypeCnt
+ip.email,IP,email,Email IP address,ip,email.ip
+ip.email.cnt,IP Cnt,email,Unique number of Email IP address,integer,email.ipCnt
+country.email, GEO,email,GeoIP country string calculated from the Email IP address,uptermfield,email.GEO
+asn.email, ASN,email,GeoIP ASN string calculated from the Email IP address,termfield,email.ASN
+rir.email, RIR,email,Regional Internet Registry string calculated from Email IP address,uptermfield,email.RIR
+email.has-header,Header,email,Email has the header set,lotermfield,email.header
+email.has-header.cnt,Header Cnt,email,Unique number of Email has the header set,integer,email.headerCnt
+email.has-header.value,Header Value,email,Email has the header value,termfield,email.headerValue
+email.has-header.value.cnt,Header Value Cnt,email,Unique number of Email has the header value,integer,email.headerValueCnt
+email.bodymagic,Body Magic,email,The content type of body determined by libfile/magic,termfield,email.bodyMagic
+email.bodymagic.cnt,Body Magic Cnt,email,Unique number of The content type of body determined by libfile/magic,integer,email.bodyMagicCnt
+email.smtp-hello,SMTP Hello,email,SMTP HELO/EHLO,lotermfield,email.smtpHello
+email.smtp-hello.cnt,SMTP Hello Cnt,email,Unique number of SMTP HELO/EHLO,integer,email.smtpHelloCnt
+email.x-priority,email.x-priority,email,Email header x-priority,integer,email.header-x-priority
+email.authorization,email.authorization,email,Email header authorization,termfield,email.header-authorization
+snmp.version,Version,snmp,SNMP Version,integer,snmp.version
+snmp.version.cnt,Version Cnt,snmp,Unique number of SNMP Version,integer,snmp.versionCnt
+snmp.community,Community,snmp,SNMP Community String,termfield,snmp.community
+snmp.community.cnt,Community Cnt,snmp,Unique number of SNMP Community String,integer,snmp.communityCnt
+snmp.error,Error,snmp,SNMP Error,termfield,snmp.error
+snmp.error.cnt,Error Cnt,snmp,Unique number of SNMP Error,integer,snmp.errorCnt
+snmp.variable,Variable,snmp,SNMP Variable OID,termfield,snmp.variable
+snmp.variable.cnt,Variable Cnt,snmp,Unique number of SNMP Variable OID,integer,snmp.variableCnt
+snmp.type,Type,snmp,SNMP PDU Type,termfield,snmp.type
+snmp.type.cnt,Type Cnt,snmp,Unique number of SNMP PDU Type,integer,snmp.typeCnt
+snmp.trap-oid,Trap OID,snmp,SNMP Trap OID,termfield,snmp.trapOid
+snmp.trap-oid.cnt,Trap OID Cnt,snmp,Unique number of SNMP Trap OID,integer,snmp.trapOidCnt
+snmp.engineId,Engine ID,snmp,SNMPv3 msgAuthoritativeEngineID (hex),termfield,snmp.engineId
+snmp.engineId.cnt,Engine ID Cnt,snmp,Unique number of SNMPv3 msgAuthoritativeEngineID (hex),integer,snmp.engineIdCnt
+snmp.secLevel,Security Level,snmp,SNMPv3 security level (noAuthNoPriv/authNoPriv/authPriv),termfield,snmp.secLevel
+snmp.secLevel.cnt,Security Level Cnt,snmp,Unique number of SNMPv3 security level (noAuthNoPriv/authNoPriv/authPriv),integer,snmp.secLevelCnt
+ip.socks,IP,socks,SOCKS destination IP,ip,socks.ip
+country.socks, GEO,socks,GeoIP country string calculated from the SOCKS destination IP,uptermfield,socks.GEO
+asn.socks, ASN,socks,GeoIP ASN string calculated from the SOCKS destination IP,termfield,socks.ASN
+rir.socks, RIR,socks,Regional Internet Registry string calculated from SOCKS destination IP,uptermfield,socks.RIR
+host.socks,Socks Hostname,socks,SOCKS destination host,lotermfield,socks.host
+host.socks.tokens,Hostname Tokens,socks,SOCKS Hostname Tokens,lotextfield,socks.hostTokens
+port.socks,Port,socks,SOCKS destination port,integer,socks.port
+socks.user,User,socks,SOCKS authenticated user,termfield,socks.user
+ssh.ver,Version,ssh,SSH Software Version,lotermfield,ssh.version
+ssh.ver.cnt,Version Cnt,ssh,Unique number of SSH Software Version,integer,ssh.versionCnt
+ssh.key,Key,ssh,SSH Key,termfield,ssh.key
+ssh.key.cnt,Key Cnt,ssh,Unique number of SSH Key,integer,ssh.keyCnt
+ssh.hassh,HASSH,ssh,SSH HASSH field,lotermfield,ssh.hassh
+ssh.hassh.cnt,HASSH Cnt,ssh,Unique number of SSH HASSH field,integer,ssh.hasshCnt
+ssh.hasshServer,HASSH Server,ssh,SSH HASSH Server field,lotermfield,ssh.hasshServer
+ssh.hasshServer.cnt,HASSH Server Cnt,ssh,Unique number of SSH HASSH Server field,integer,ssh.hasshServerCnt
+stun.type,Message Type,stun,STUN message type,termfield,stun.type
+stun.type.cnt,Message Type Cnt,stun,Unique number of STUN message type,integer,stun.typeCnt
+stun.mapped-ip,Mapped IP,stun,STUN MAPPED-ADDRESS IP,ip,stun.mappedIp
+stun.mapped-ip.cnt,Mapped IP Cnt,stun,Unique number of STUN MAPPED-ADDRESS IP,integer,stun.mappedIpCnt
+stun.mapped-ip.country,Mapped IP GEO,stun,GeoIP country string calculated from the STUN MAPPED-ADDRESS IP,uptermfield,stun.mappedGEO
+stun.mapped-ip.asn,Mapped IP ASN,stun,GeoIP ASN string calculated from the STUN MAPPED-ADDRESS IP,termfield,stun.mappedASN
+stun.mapped-ip.rir,Mapped IP RIR,stun,Regional Internet Registry string calculated from STUN MAPPED-ADDRESS IP,uptermfield,stun.mappedRIR
+stun.mapped-port,Mapped Port,stun,STUN MAPPED-ADDRESS port,integer,stun.mappedPort
+stun.mapped-port.cnt,Mapped Port Cnt,stun,Unique number of STUN MAPPED-ADDRESS port,integer,stun.mappedPortCnt
+stun.xor-mapped-ip,XOR Mapped IP,stun,STUN XOR-MAPPED-ADDRESS IP (external/NAT IP),ip,stun.xorMappedIp
+stun.xor-mapped-ip.cnt,XOR Mapped IP Cnt,stun,Unique number of STUN XOR-MAPPED-ADDRESS IP (external/NAT IP),integer,stun.xorMappedIpCnt
+stun.xor-mapped-ip.country,XOR Mapped IP GEO,stun,GeoIP country string calculated from the STUN XOR-MAPPED-ADDRESS IP (external/NAT IP),uptermfield,stun.xorMappedGEO
+stun.xor-mapped-ip.asn,XOR Mapped IP ASN,stun,GeoIP ASN string calculated from the STUN XOR-MAPPED-ADDRESS IP (external/NAT IP),termfield,stun.xorMappedASN
+stun.xor-mapped-ip.rir,XOR Mapped IP RIR,stun,Regional Internet Registry string calculated from STUN XOR-MAPPED-ADDRESS IP (external/NAT IP),uptermfield,stun.xorMappedRIR
+stun.xor-mapped-port,XOR Mapped Port,stun,STUN XOR-MAPPED-ADDRESS port,integer,stun.xorMappedPort
+stun.xor-mapped-port.cnt,XOR Mapped Port Cnt,stun,Unique number of STUN XOR-MAPPED-ADDRESS port,integer,stun.xorMappedPortCnt
+stun.username,Username,stun,STUN username (ICE credentials),termfield,stun.username
+stun.username.cnt,Username Cnt,stun,Unique number of STUN username (ICE credentials),integer,stun.usernameCnt
+stun.software,Software,stun,STUN software attribute,termfield,stun.software
+stun.software.cnt,Software Cnt,stun,Unique number of STUN software attribute,integer,stun.softwareCnt
+stun.realm,Realm,stun,STUN realm,termfield,stun.realm
+stun.realm.cnt,Realm Cnt,stun,Unique number of STUN realm,integer,stun.realmCnt
+stun.error,Error Code,stun,STUN error code,integer,stun.error
+stun.error.cnt,Error Code Cnt,stun,Unique number of STUN error code,integer,stun.errorCnt
+stun.xor-relayed-ip,XOR Relayed IP,stun,TURN XOR-RELAYED-ADDRESS IP (relay server allocated address),ip,stun.xorRelayedIp
+stun.xor-relayed-ip.cnt,XOR Relayed IP Cnt,stun,Unique number of TURN XOR-RELAYED-ADDRESS IP (relay server allocated address),integer,stun.xorRelayedIpCnt
+stun.xor-relayed-ip.country,XOR Relayed IP GEO,stun,GeoIP country string calculated from the TURN XOR-RELAYED-ADDRESS IP (relay server allocated address),uptermfield,stun.xorRelayedGEO
+stun.xor-relayed-ip.asn,XOR Relayed IP ASN,stun,GeoIP ASN string calculated from the TURN XOR-RELAYED-ADDRESS IP (relay server allocated address),termfield,stun.xorRelayedASN
+stun.xor-relayed-ip.rir,XOR Relayed IP RIR,stun,Regional Internet Registry string calculated from TURN XOR-RELAYED-ADDRESS IP (relay server allocated address),uptermfield,stun.xorRelayedRIR
+stun.xor-relayed-port,XOR Relayed Port,stun,TURN XOR-RELAYED-ADDRESS port,integer,stun.xorRelayedPort
+stun.xor-relayed-port.cnt,XOR Relayed Port Cnt,stun,Unique number of TURN XOR-RELAYED-ADDRESS port,integer,stun.xorRelayedPortCnt
+stun.xor-peer-ip,XOR Peer IP,stun,TURN XOR-PEER-ADDRESS IP (remote peer relayed through TURN server),ip,stun.xorPeerIp
+stun.xor-peer-ip.cnt,XOR Peer IP Cnt,stun,Unique number of TURN XOR-PEER-ADDRESS IP (remote peer relayed through TURN server),integer,stun.xorPeerIpCnt
+stun.xor-peer-ip.country,XOR Peer IP GEO,stun,GeoIP country string calculated from the TURN XOR-PEER-ADDRESS IP (remote peer relayed through TURN server),uptermfield,stun.xorPeerGEO
+stun.xor-peer-ip.asn,XOR Peer IP ASN,stun,GeoIP ASN string calculated from the TURN XOR-PEER-ADDRESS IP (remote peer relayed through TURN server),termfield,stun.xorPeerASN
+stun.xor-peer-ip.rir,XOR Peer IP RIR,stun,Regional Internet Registry string calculated from TURN XOR-PEER-ADDRESS IP (remote peer relayed through TURN server),uptermfield,stun.xorPeerRIR
+stun.xorPeerPort,XOR Peer Port,stun,TURN XOR-PEER-ADDRESS port,integer,stun.xorPeerPort
+stun.xorPeerPort.cnt,XOR Peer Port Cnt,stun,Unique number of TURN XOR-PEER-ADDRESS port,integer,stun.xorPeerPortCnt
+stun.attributes,Attributes,stun,"STUN/TURN protocol attributes/flags (fingerprint, ice-controlled, ice-controlling, use-candidate)",termfield,stun.attributes
+stun.attributes.cnt,Attributes Cnt,stun,"Unique number of STUN/TURN protocol attributes/flags (fingerprint, ice-controlled, ice-controlling, use-candidate)",integer,stun.attributesCnt
+synchrophasor.frameType,Frame Type,synchrophasor,Synchrophasor frame types,lotermfield,synchrophasor.frameType
+synchrophasor.frameType.cnt,Frame Type Cnt,synchrophasor,Unique number of Synchrophasor frame types,integer,synchrophasor.frameTypeCnt
+synchrophasor.idcode,ID Code,synchrophasor,Synchrophasor data stream ID codes,integer,synchrophasor.idcode
+synchrophasor.idcode.cnt,ID Code Cnt,synchrophasor,Unique number of Synchrophasor data stream ID codes,integer,synchrophasor.idcodeCnt
+synchrophasor.cmd,Command,synchrophasor,Synchrophasor command codes,integer,synchrophasor.cmd
+synchrophasor.cmd.cnt,Command Cnt,synchrophasor,Unique number of Synchrophasor command codes,integer,synchrophasor.cmdCnt
+synchrophasor.station,Station Name,synchrophasor,Synchrophasor PMU station names,termfield,synchrophasor.station
+synchrophasor.station.cnt,Station Name Cnt,synchrophasor,Unique number of Synchrophasor PMU station names,integer,synchrophasor.stationCnt
+synchrophasor.dataRate,Data Rate,synchrophasor,Synchrophasor data rate (frames/sec),integer,synchrophasor.dataRate
+synchrophasor.dataRate.cnt,Data Rate Cnt,synchrophasor,Unique number of Synchrophasor data rate (frames/sec),integer,synchrophasor.dataRateCnt
+synchrophasor.numPMU,Number of PMUs,synchrophasor,Number of PMUs in synchrophasor config,integer,synchrophasor.numPMU
+synchrophasor.numPMU.cnt,Number of PMUs Cnt,synchrophasor,Unique number of Number of PMUs in synchrophasor config,integer,synchrophasor.numPMUCnt
+sccp.src,Src Point Code,sccp,SCCP Source Point Code,integer,sccp.src
+sccp.src.cnt,Src Point Code Cnt,sccp,Unique number of SCCP Source Point Code,integer,sccp.srcCnt
+sccp.dst,Dst Point Code,sccp,SCCP Destination Point Code,integer,sccp.dst
+sccp.dst.cnt,Dst Point Code Cnt,sccp,Unique number of SCCP Destination Point Code,integer,sccp.dstCnt
+tcap.opcode,Op Code,tcap,TCAP Operation Code,integer,tcap.opcode
+tcap.opcode.cnt,Op Code Cnt,tcap,Unique number of TCAP Operation Code,integer,tcap.opcodeCnt
+tftp.opcode,Opcode,tftp,"TFTP opcode (rrq, wrq, data, ack, error)",termfield,tftp.opcode
+tftp.opcode.cnt,Opcode Cnt,tftp,"Unique number of TFTP opcode (rrq, wrq, data, ack, error)",integer,tftp.opcodeCnt
+tftp.filename,Filename,tftp,TFTP filename,termfield,tftp.filename
+tftp.filename.cnt,Filename Cnt,tftp,Unique number of TFTP filename,integer,tftp.filenameCnt
+tls.version,Version,tls,SSL/TLS version field,termfield,tls.version
+tls.version.cnt,Version Cnt,tls,Unique number of SSL/TLS version field,integer,tls.versionCnt
+tls.cipher,Cipher,tls,SSL/TLS cipher field,uptermfield,tls.cipher
+tls.cipher.cnt,Cipher Cnt,tls,Unique number of SSL/TLS cipher field,integer,tls.cipherCnt
+tls.ja3,JA3,tls,SSL/TLS JA3 field,lotermfield,tls.ja3
+tls.ja3.cnt,JA3 Cnt,tls,Unique number of SSL/TLS JA3 field,integer,tls.ja3Cnt
+tls.ja4.cnt,JA4 Cnt,tls,Unique number of SSL/TLS JA4 field,integer,tls.ja4Cnt
+tls.ja4_r.cnt,JA4_r Cnt,tls,Unique number of SSL/TLS JA4_r field,integer,tls.ja4_rCnt
+tls.ja3s,JA3S,tls,SSL/TLS JA3S field,lotermfield,tls.ja3s
+tls.ja3s.cnt,JA3S Cnt,tls,Unique number of SSL/TLS JA3S field,integer,tls.ja3sCnt
+tls.sessionid.dst,Dst Session Id,tls,SSL/TLS Dst Session Id,lotermfield,tls.dstSessionId
+tls.sessionid.src,Src Session Id,tls,SSL/TLS Src Session Id,lotermfield,tls.srcSessionId
+tls.sessionid,Src or Dst Session Id,general,Shorthand for tls.sessionid.src or tls.sessionid.dst,lotermfield,tlsidall
+websocket.opcode,Opcode,websocket,"WebSocket frame opcode (Text, Binary, Ping, Pong, Close, ...)",termfield,websocket.opcode
+websocket.opcode.cnt,Opcode Cnt,websocket,"Unique number of WebSocket frame opcode (Text, Binary, Ping, Pong, Close, ...)",integer,websocket.opcodeCnt
+websocket.closeCode,Close Code,websocket,WebSocket close status code,integer,websocket.closeCode
+websocket.closeCode.cnt,Close Code Cnt,websocket,Unique number of WebSocket close status code,integer,websocket.closeCodeCnt
+websocket.closeReason,Close Reason,websocket,WebSocket close reason text,termfield,websocket.closeReason
+websocket.closeReason.cnt,Close Reason Cnt,websocket,Unique number of WebSocket close reason text,integer,websocket.closeReasonCnt
+websocket.payloadBytes,Payload Bytes,websocket,Total WebSocket payload bytes observed,integer,websocket.payloadBytes
+websocket.frameCnt,Frame Count,websocket,Total WebSocket frames observed,integer,websocket.frameCnt
+websocket.textSample,Text Sample,websocket,Sample of WebSocket text frame payload (truncated to 256 bytes),termfield,websocket.textSample
+websocket.textSample.cnt,Text Sample Cnt,websocket,Unique number of Sample of WebSocket text frame payload (truncated to 256 bytes),integer,websocket.textSampleCnt
+websocket.maskedFromClient,Masked Frames,websocket,Number of WebSocket frames with the MASK bit set (must be set on client->server frames per RFC 6455),integer,websocket.maskedFromClient
+tags,Tags,general,Tags set for session,termfield,tags
+tags.cnt,Tags Cnt,general,Unique number of Tags set for session,integer,tagsCnt
+asset,Asset,general,Asset name,lotermfield,asset
+asset.cnt,Asset Cnt,general,Unique number of Asset name,integer,assetCnt
+protocols,Protocols,general,Protocols set for session,termfield,protocol
+protocols.cnt,Protocols Cnt,general,Unique number of Protocols set for session,integer,protocolCnt
+ospf.version,OSPF Version,ospf,OSPF version (RFC 2328 / 5340),termfield,ospf.version
+ospf.v2.authType,OSPFv2 Auth Type,ospf,OSPFv2 authentication type,termfield,ospf.v2.authType
+ospf.v2.helloInterval,Hello Interval,ospf,OSPF Hello interval (seconds),integer,ospf.v2.helloInterval
+ospf.v2.deadInterval,Dead Interval,ospf,OSPF Router Dead interval (seconds),integer,ospf.v2.deadInterval
+ospf.v2.dr,Designated Router,ospf,OSPF Designated Router,termfield,ospf.v2.dr
+ospf.v2.bdr,Backup DR,ospf,OSPF Backup Designated Router,termfield,ospf.v2.bdr
+ospf.v3.instanceId,OSPFv3 Instance ID,ospf,OSPFv3 Instance ID (RFC 5340),integer,ospf.v3.instanceId
+ntlm.domain,NTLM Domain,ntlm,NTLMSSP domain or target realm,termfield,ntlm.domain
+ntlm.domain.cnt,NTLM Domain Cnt,ntlm,Unique number of NTLMSSP domain or target realm,integer,ntlm.domainCnt
+ntlm.host,NTLM Host,ntlm,NTLMSSP workstation/host name,termfield,ntlm.host
+ntlm.host.cnt,NTLM Host Cnt,ntlm,Unique number of NTLMSSP workstation/host name,integer,ntlm.hostCnt
+ntlm.targetName,NTLM Target Name,ntlm,NTLMSSP server-advertised target name (Type 2),termfield,ntlm.targetName
+ntlm.targetName.cnt,NTLM Target Name Cnt,ntlm,Unique number of NTLMSSP server-advertised target name (Type 2),integer,ntlm.targetNameCnt
+ntlm.version,NTLM Version,ntlm,NTLMSSP client/server OS version (major.minor.build),termfield,ntlm.version
+ntlm.version.cnt,NTLM Version Cnt,ntlm,Unique number of NTLMSSP client/server OS version (major.minor.build),integer,ntlm.versionCnt
+ntlm.type,NTLM Message Type,ntlm,"NTLMSSP message type: 1=Negotiate, 2=Challenge, 3=Authenticate",integer,ntlm.type
+ntlm.type.cnt,NTLM Message Type Cnt,ntlm,"Unique number of NTLMSSP message type: 1=Negotiate, 2=Challenge, 3=Authenticate",integer,ntlm.typeCnt
+opcua.endpointUrl,OPC UA Endpoint URL,opcua,OPC UA endpoint URL from the Hello message,termfield,opcua.endpointUrl
+opcua.endpointUrl.cnt,OPC UA Endpoint URL Cnt,opcua,Unique number of OPC UA endpoint URL from the Hello message,integer,opcua.endpointUrlCnt
+opcua.securityPolicyUri,OPC UA Security Policy,opcua,OPC UA SecurityPolicyUri from the OpenSecureChannel message,termfield,opcua.securityPolicyUri
+opcua.securityPolicyUri.cnt,OPC UA Security Policy Cnt,opcua,Unique number of OPC UA SecurityPolicyUri from the OpenSecureChannel message,integer,opcua.securityPolicyUriCnt
+pop3.user,User,pop3,POP3 username,lotermfield,pop3.user
+pop3.user.cnt,User Cnt,pop3,Unique number of POP3 username,integer,pop3.userCnt
+pop3.bodyfile,POP3 Body File,pop3,POP3 email body saved file path,termfield,pop3.bodyFile
+pop3.bodymagic,POP3 Body Magic,pop3,The content type of POP3 body determined by libfile/magic,termfield,pop3.bodyMagic
+pop3.bodymagic.cnt,POP3 Body Magic Cnt,pop3,Unique number of The content type of POP3 body determined by libfile/magic,integer,pop3.bodyMagicCnt
+pop3.body.md5,POP3 Body MD5,pop3,POP3 email body MD5,termfield,pop3.bodyMd5
+pop3.body.md5.cnt,POP3 Body MD5 Cnt,pop3,Unique number of POP3 email body MD5,integer,pop3.bodyMd5Cnt
+packets.src,Src Packets,general,Total number of packets sent by source in a session,integer,srcPackets
+packets.dst,Dst Packets,general,Total number of packets sent by destination in a session,integer,dstPackets
+communityId,Community Id,general,Community id flow hash,termfield,communityId

@@ -10,3 +10,11 @@ if (session.sip)
     +arrayList(session.sip, 'useragent', 'User-Agent', 'sip.useragent')
     +arrayList(session.sip, 'via', 'Via', 'sip.via')
     +arrayList(session.sip, 'contact', 'Contact', 'sip.contact')
+    if (session.sip.rtp)
+      div.sessionDetailMeta.bold SIP RTP
+      dl.sessionDetailMeta
+        +arrayList(session.sip.rtp, 'media', 'Media Type', 'sip.rtp.media')
+        +arrayList(session.sip.rtp, 'codec', 'Codec', 'sip.rtp.codec')
+        +arrayList(session.sip.rtp, 'port', 'Port', 'sip.rtp.port')
+        +arrayList(session.sip.rtp, 'transport', 'Transport', 'sip.rtp.transport')
+        +arrayList(session.sip.rtp, 'ip', 'IP', 'sip.rtp.ip')

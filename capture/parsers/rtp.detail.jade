@@ -1,0 +1,11 @@
+if (session.rtp)
+  div.sessionDetailMeta.bold RTP
+  dl.sessionDetailMeta
+    +arrayList(session.rtp, 'ssrc', 'SSRC', 'rtp.ssrc')
+    +arrayList(session.rtp, 'payload_type', 'Payload Type', 'rtp.payload_type')
+    +arrayList(session.rtp, 'codec', 'Codec', 'rtp.codec')
+    +arrayList(session.rtp, 'media', 'Media', 'rtp.media')
+    +arrayList(session.rtp, 'packets', 'Packets', 'rtp.packets')
+    +arrayList(session.rtp, 'lost', 'Lost', 'rtp.lost')
+    +arrayList(session.rtp, 'streams', 'Streams', 'rtp.streams')
+    +arrayList(session.rtp, 'files', 'Files', 'rtp.files')
