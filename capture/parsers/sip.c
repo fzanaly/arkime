@@ -37,6 +37,7 @@ LOCAL const char *sdp_static_codec(int pt)
 {
     switch (pt) {
     case 0:  return "PCMU";
+    case 2:  return "G721";
     case 3:  return "GSM";
     case 4:  return "G723";
     case 5:  return "DVI4";

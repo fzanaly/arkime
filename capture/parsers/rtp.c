@@ -63,8 +63,12 @@ int rtp_codec_to_avcodec_id(const char *codec)
     if (g_ascii_strcasecmp(codec, "PCMA") == 0)  return AV_CODEC_ID_PCM_ALAW;
     if (g_ascii_strcasecmp(codec, "G722") == 0)  return AV_CODEC_ID_ADPCM_G722;
     if (g_ascii_strcasecmp(codec, "G729") == 0)  return AV_CODEC_ID_G729;
+    if (g_ascii_strcasecmp(codec, "G721") == 0 ||
+        g_ascii_strcasecmp(codec, "G726-32") == 0 ||
+        g_ascii_strcasecmp(codec, "G726-24") == 0)  return AV_CODEC_ID_ADPCM_G726;
     if (g_ascii_strcasecmp(codec, "OPUS") == 0)  return AV_CODEC_ID_OPUS;
     if (g_ascii_strcasecmp(codec, "H264") == 0)  return AV_CODEC_ID_H264;
+    if (g_ascii_strcasecmp(codec, "H261") == 0)  return AV_CODEC_ID_H261;
     if (g_ascii_strcasecmp(codec, "VP8")  == 0)  return AV_CODEC_ID_VP8;
     if (g_ascii_strcasecmp(codec, "MP4A-LATM") == 0 ||
         g_ascii_strcasecmp(codec, "MPEG4-GENERIC") == 0) return AV_CODEC_ID_AAC;
@@ -76,11 +80,16 @@ int rtp_codec_clock_rate(const char *codec)
 {
     if (!codec) return 8000;
     if (g_ascii_strcasecmp(codec, "H264") == 0 ||
+        g_ascii_strcasecmp(codec, "H261") == 0 ||
         g_ascii_strcasecmp(codec, "H263") == 0 ||
         g_ascii_strcasecmp(codec, "H263-1998") == 0 ||
         g_ascii_strcasecmp(codec, "MP4V-ES") == 0) return 90000;
     if (g_ascii_strcasecmp(codec, "OPUS") == 0) return 48000;
     if (g_ascii_strcasecmp(codec, "G722") == 0) return 8000;  /* G722 internally 16kHz but RTP clock is 8kHz */
+    if (g_ascii_strcasecmp(codec, "G729") == 0 ||
+        g_ascii_strcasecmp(codec, "G721") == 0 ||
+        g_ascii_strcasecmp(codec, "G726-32") == 0 ||
+        g_ascii_strcasecmp(codec, "G726-24") == 0) return 8000;
     if (g_ascii_strcasecmp(codec, "PCMU") == 0 ||
         g_ascii_strcasecmp(codec, "PCMA") == 0) return 8000;
     return 8000; /* Default audio clock */
@@ -90,12 +99,16 @@ const char *rtp_codec_container_ext(const char *codec)
 {
     if (!codec) return "raw";
     if (g_ascii_strcasecmp(codec, "H264") == 0)  return "mp4";
+    if (g_ascii_strcasecmp(codec, "H261") == 0)  return "avi";
     if (g_ascii_strcasecmp(codec, "H263") == 0 ||
         g_ascii_strcasecmp(codec, "H263-1998") == 0)  return "avi";
     if (g_ascii_strcasecmp(codec, "PCMU") == 0)  return "wav";
     if (g_ascii_strcasecmp(codec, "PCMA") == 0)  return "wav";
     if (g_ascii_strcasecmp(codec, "G722") == 0)  return "wav";
     if (g_ascii_strcasecmp(codec, "G729") == 0)  return "wav";
+    if (g_ascii_strcasecmp(codec, "G721") == 0 ||
+        g_ascii_strcasecmp(codec, "G726-32") == 0 ||
+        g_ascii_strcasecmp(codec, "G726-24") == 0)  return "wav";
     if (g_ascii_strcasecmp(codec, "OPUS") == 0)  return "mp4";
     if (g_ascii_strcasecmp(codec, "VP8")  == 0)  return "ivf";
     return "raw";
@@ -108,6 +121,7 @@ LOCAL const char *rtp_static_codec_from_pt(int pt)
 {
     switch (pt) {
     case 0:  return "PCMU";
+    case 2:  return "G721";
     case 3:  return "GSM";
     case 4:  return "G723";
     case 5:  return "DVI4";
@@ -139,6 +153,7 @@ const char *rtp_codec_media_type(const char *codec)
 {
     if (!codec) return "unknown";
     if (g_ascii_strcasecmp(codec, "H264") == 0 ||
+        g_ascii_strcasecmp(codec, "H261") == 0 ||
         g_ascii_strcasecmp(codec, "H263") == 0 ||
         g_ascii_strcasecmp(codec, "VP8")  == 0 ||
         g_ascii_strcasecmp(codec, "JPEG") == 0 ||
@@ -414,6 +429,59 @@ LOCAL void rtp_append_audio_frame(RtpStreamState_t *stream, const uint8_t *paylo
     }
     stream->packetSizes[stream->packetSizesCount] = payloadLen;
     stream->packetSizesCount++;
+}
+
+/******************************************************************************/
+/* H.261 RTP 解包函数 (RFC 4587)                                               */
+/* H.261 比特流直接放置在 RTP 载荷中，无额外 RTP 载荷头                           */
+/* Marker bit 用于标记帧边界                                                     */
+/******************************************************************************/
+/* H.261 RTP 载荷格式头部 (RFC 4587 Section 4.1)                              */
+/*   4 字节头部:                                                               */
+/*   Byte 0: SBIT (3) | EBIT (3) | I (1) | V (1)                             */
+/*   Byte 1: GOBN (4) | MBAP (4)                                              */
+/*   Byte 2: QUANT (5) | HMVR (3)                                             */
+/*   Byte 3: VMVR (3) | (reserved)                                            */
+/*                                                                            */
+/*   SBIT: 忽略首字节的高位比特数                                              */
+/*   EBIT: 忽略末字节的低位比特数                                              */
+/*   I: 帧内编码指示 (1=帧内)                                                  */
+/*   V: 运动矢量标识 (1=有运动矢量)                                            */
+/*   GOBN: GOB 编号                                                          */
+/*   MBAP: 宏块地址预测器                                                     */
+/*   QUANT: 量化器值                                                          */
+/*   HMVR/VMVR: 水平和垂直运动矢量                                             */
+/******************************************************************************/
+#define H261_RTP_HEADER_LEN 4
+#define MAX_H261_FRAMES 4096
+
+LOCAL void rtp_depacket_h261(RtpStreamState_t *stream, const uint8_t *payload, int payloadLen,
+                             int marker_bit)
+{
+    if (payloadLen <= H261_RTP_HEADER_LEN)
+        return;
+
+    /* 跳过 4 字节 H.261 RTP 头部，只追加纯 H.261 比特流数据 */
+    const uint8_t *h261_data = payload + H261_RTP_HEADER_LEN;
+    int h261_len = payloadLen - H261_RTP_HEADER_LEN;
+
+    int needed = stream->bufLen + h261_len;
+    if (needed > MAX_STREAM_BUFFER_SIZE) {
+        stream->bufOverflow = 1;
+        return;
+    }
+    if (needed > stream->bufAlloc) {
+        stream->bufAlloc = needed + 65536;
+        stream->buf = g_realloc(stream->buf, stream->bufAlloc);
+    }
+    memcpy(stream->buf + stream->bufLen, h261_data, h261_len);
+    stream->bufLen += h261_len;
+
+    /* 记录帧边界: marker=1 表示当前 RTP 包是视频帧的最后一个包
+     * 当 PSC 不可用时使用 marker bit 标识帧边界 */
+    if (marker_bit && stream->frameCount < MAX_H261_FRAMES) {
+        stream->frameEnds[stream->frameCount++] = stream->bufLen;
+    }
 }
 
 /******************************************************************************/
@@ -835,6 +903,254 @@ cleanup:
 }
 
 /******************************************************************************/
+/* 手动解析 H.261 帧头获取宽高                                                 */
+/* H.261 比特流格式 (ITU-T H.261):                                            */
+/*   PSC (21 bits): 0000 0000 0000 0000 0000 1                                */
+/*   字节对齐后: [0x00][0x00][0x08-0x0F] (高5位=00001)                         */
+/*   紧跟 PSC: TR (5 bits) + PTYPE (6 bits)                                   */
+/* PTYPE 中的 Source Format (2 bits) 仅支持两种分辨率：                         */
+/*   01=QCIF(176x144) 10=CIF(352x288)                                         */
+/******************************************************************************/
+LOCAL int rtp_parse_h261_dimensions(const uint8_t *data, int len,
+                                    int *width, int *height)
+{
+    /* H.261 PSC = 20 zeros + 1 = byte pattern: 0x00 0x00 (byte & 0xF8 == 0x08) */
+    /* 迭代查找所有 PSC 候选，取第一个具有有效源格式的 */
+    for (int i = 0; i < len - 3; i++) {
+        if (data[i] == 0x00 && data[i+1] == 0x00 &&
+            (data[i+2] & 0xF8) == 0x08) {
+            /* 字节布局 (PSC 后):
+             *   byte[i+0]: 0x00 (PSC 前 8 bits)
+             *   byte[i+1]: 0x00 (PSC 中间 8 bits)
+             *   byte[i+2]: 00001xxx (PSC 后 5 bits | TR 前 3 bits)
+             *   byte[i+3]: TR 后 2 bits | PTYPE[5:0]
+             * PTYPE[2:1] (byte[i+3] bits 2-1) = Source Format
+             *   01 = QCIF (176x144)
+             *   10 = CIF (352x288) */
+            int sfmt = (data[i + 3] >> 1) & 0x03;
+
+            if (sfmt == 1) {
+                *width  = 176;
+                *height = 144;
+                LOG("rtp: H261 parsed dimensions: QCIF 176x144");
+                return 0;
+            } else if (sfmt == 2) {
+                *width  = 352;
+                *height = 288;
+                LOG("rtp: H261 parsed dimensions: CIF 352x288");
+                return 0;
+            }
+            /* 无效源格式（0 或 3）：继续扫描下一个 PSC 候选 */
+        }
+    }
+
+    LOG("rtp: H261 dimensions: no valid PSC found in %d bytes", len);
+    return -1;
+}
+
+/******************************************************************************/
+/* FFmpeg: H.261 → AVI 容器封装 (codec copy / passthrough)                    */
+/* H.261 比特流由帧组成，帧边界由 PSC (Picture Start Code) 标记                  */
+/* PSC = 21 bits: 0000 0000 0000 0000 0000 1                                 */
+/* 字节对齐后: 0x00 0x00 [0x08 .. 0x0F]                                       */
+/******************************************************************************/
+LOCAL int rtp_mux_h261_to_avi(const char *output_path,
+                               const uint8_t *h261_data, int h261_len,
+                               uint32_t first_ts, uint32_t last_ts, int clock_rate,
+                               const int *frameEnds, int frameCount)
+{
+    AVFormatContext *fmt_ctx = NULL;
+    AVStream *stream = NULL;
+    int ret = -1;
+
+    /* 分配输出上下文 — 显式指定 AVI muxer */
+    ret = avformat_alloc_output_context2(&fmt_ctx, NULL, "avi", output_path);
+    if (ret < 0 || !fmt_ctx) {
+        LOG("rtp: avformat_alloc_output_context2 (avi) failed for %s", output_path);
+        return -1;
+    }
+
+    /* 创建视频流 */
+    stream = avformat_new_stream(fmt_ctx, NULL);
+    if (!stream) {
+        LOG("rtp: avformat_new_stream failed");
+        goto cleanup;
+    }
+
+    stream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
+    stream->codecpar->codec_id   = AV_CODEC_ID_H261;
+    stream->codecpar->codec_tag  = 0;
+
+    /* 从 RTP 时间戳计算帧率 */
+    int clock = clock_rate > 0 ? clock_rate : 90000;
+    int frame_spacing = clock / 10; /* 默认 10fps 备用 */
+    if (frameCount > 1 && last_ts > first_ts) {
+        int ts_diff = (int)(last_ts - first_ts);
+        if (ts_diff > 0)
+            frame_spacing = ts_diff / (frameCount - 1);
+    }
+    stream->time_base = (AVRational){frame_spacing, clock};
+    av_reduce(&stream->time_base.num, &stream->time_base.den,
+              stream->time_base.num, stream->time_base.den, INT_MAX);
+    stream->avg_frame_rate = (AVRational){stream->time_base.den, stream->time_base.num};
+
+    /* 解析 H.261 帧头获取宽高 */
+    {
+        int w = 0, h = 0;
+        if (rtp_parse_h261_dimensions(h261_data, h261_len, &w, &h) == 0) {
+            stream->codecpar->width  = w;
+            stream->codecpar->height = h;
+        } else {
+            /* 默认 QCIF */
+            stream->codecpar->width  = 176;
+            stream->codecpar->height = 144;
+            LOG("rtp: H261 using default dimensions 176x144 (QCIF)");
+        }
+    }
+
+    /* 打开输出文件 */
+    ret = avio_open(&fmt_ctx->pb, output_path, AVIO_FLAG_WRITE);
+    if (ret < 0) {
+        LOG("rtp: avio_open failed for %s: %s", output_path, av_err2str(ret));
+        goto cleanup;
+    }
+
+    /* 写头部 */
+    ret = avformat_write_header(fmt_ctx, NULL);
+    if (ret < 0) {
+        LOG("rtp: avformat_write_header (avi) failed: %s", av_err2str(ret));
+        goto cleanup_file;
+    }
+
+    /* 使用帧边界 (frameEnds) 或 PSC 扫描分割比特流 */
+    int prev_end = 0;
+
+    /* 检测原始数据中是否包含 PSC */
+    int has_psc = 0;
+    for (int i = 0; i < h261_len - 2 && !has_psc; i++) {
+        if (h261_data[i] == 0x00 && h261_data[i + 1] == 0x00 &&
+            (h261_data[i + 2] & 0xF8) == 0x08) {
+            has_psc = 1;
+        }
+    }
+
+    if (frameCount <= 0) {
+        /* 无帧边界信息，尝试 PSC 扫描作为回退 */
+        LOG("rtp: H261 no frame boundaries from marker bits, trying PSC scan");
+
+        int offset = 0;
+        int frame_index = 0;
+        while (offset < h261_len) {
+            /* 查找下一个 PSC */
+            int next_psc = -1;
+            for (int i = offset + 1; i < h261_len - 2; i++) {
+                if (h261_data[i] == 0x00 && h261_data[i + 1] == 0x00 &&
+                    (h261_data[i + 2] & 0xF8) == 0x08) {
+                    next_psc = i;
+                    break;
+                }
+            }
+
+            if (next_psc < 0) {
+                /* 没有更多 PSC，将剩余数据作为最后一帧写入 */
+                if (offset < h261_len) {
+                    AVPacket *pkt = av_packet_alloc();
+                    if (pkt) {
+                        if (av_new_packet(pkt, h261_len - offset) >= 0) {
+                            memcpy(pkt->data, h261_data + offset, h261_len - offset);
+                            pkt->stream_index = stream->index;
+                            pkt->pts = pkt->dts = frame_index;
+                            pkt->duration = 1;
+                            pkt->flags |= AV_PKT_FLAG_KEY;
+                            av_interleaved_write_frame(fmt_ctx, pkt);
+                        }
+                        av_packet_free(&pkt);
+                    }
+                }
+                break;
+            }
+
+            int frame_len = next_psc - offset;
+            if (frame_len > 0) {
+                AVPacket *pkt = av_packet_alloc();
+                if (pkt) {
+                    if (av_new_packet(pkt, frame_len) >= 0) {
+                        memcpy(pkt->data, h261_data + offset, frame_len);
+                        pkt->stream_index = stream->index;
+                        pkt->pts = pkt->dts = frame_index;
+                        pkt->duration = 1;
+                        pkt->flags |= AV_PKT_FLAG_KEY;
+                        av_interleaved_write_frame(fmt_ctx, pkt);
+                    }
+                    av_packet_free(&pkt);
+                }
+                frame_index++;
+            }
+
+            offset = next_psc;
+        }
+    } else {
+        /* 使用 depacketizer 记录的帧边界 (marker bit) */
+        for (int i = 0; i < frameCount; i++) {
+            int frame_start = prev_end;
+            int frame_end   = frameEnds[i];
+            int frame_len   = frame_end - frame_start;
+
+            if (frame_len <= 0)
+                continue;
+
+            AVPacket *pkt = av_packet_alloc();
+            if (!pkt)
+                break;
+
+            if (av_new_packet(pkt, frame_len) >= 0) {
+                memcpy(pkt->data, h261_data + frame_start, frame_len);
+                pkt->stream_index = stream->index;
+                pkt->pts = pkt->dts = i;
+                pkt->duration = 1;
+                pkt->flags |= AV_PKT_FLAG_KEY;
+                av_interleaved_write_frame(fmt_ctx, pkt);
+            }
+            av_packet_free(&pkt);
+
+            prev_end = frame_end;
+        }
+
+        /* 写入剩余数据 */
+        if (prev_end < h261_len) {
+            int remaining = h261_len - prev_end;
+            if (remaining > 0) {
+                AVPacket *pkt = av_packet_alloc();
+                if (pkt) {
+                    if (av_new_packet(pkt, remaining) >= 0) {
+                        memcpy(pkt->data, h261_data + prev_end, remaining);
+                        pkt->stream_index = stream->index;
+                        pkt->pts = pkt->dts = frameCount;
+                        pkt->duration = 1;
+                        pkt->flags |= AV_PKT_FLAG_KEY;
+                        av_interleaved_write_frame(fmt_ctx, pkt);
+                    }
+                    av_packet_free(&pkt);
+                }
+            }
+        }
+    }
+
+    /* 写尾部 */
+    av_write_trailer(fmt_ctx);
+
+    LOG("rtp: H.261→AVI muxed %s: %d frames (%d from marker), %d bytes input",
+        output_path, frameCount > 0 ? frameCount : 0, frameCount, h261_len);
+    ret = 0;
+
+cleanup_file:
+    avio_closep(&fmt_ctx->pb);
+cleanup:
+    avformat_free_context(fmt_ctx);
+    return ret;
+}
+
+/******************************************************************************/
 /* 手动解析 H.263 帧头获取宽高                                                */
 /* H.263 比特流格式 (ITU-T H.263):                                           */
 /*   PSC (22 bits): 0000 0000 0000 0000 1000 00                              */
@@ -1198,6 +1514,11 @@ LOCAL int rtp_mux_audio_to_wav(const char *output_path,
     } else if (g_ascii_strcasecmp(codec_name, "G729") == 0) {
         codec_id = AV_CODEC_ID_G729;
         sample_rate = 8000;
+    } else if (g_ascii_strcasecmp(codec_name, "G721") == 0 ||
+               g_ascii_strcasecmp(codec_name, "G726-32") == 0 ||
+               g_ascii_strcasecmp(codec_name, "G726-24") == 0) {
+        codec_id = AV_CODEC_ID_ADPCM_G726;
+        sample_rate = 8000;
     } else {
         LOG("rtp: unsupported audio codec for WAV: %s", codec_name);
         return -1;
@@ -1217,6 +1538,17 @@ LOCAL int rtp_mux_audio_to_wav(const char *output_path,
 
     dec_ctx->sample_rate = sample_rate;
     dec_ctx->ch_layout   = (AVChannelLayout)AV_CHANNEL_LAYOUT_MONO;
+
+    /* G.726 解码器是多码率（16/24/32/40 kbps），通过 bits_per_coded_sample 选择模式
+     * G.726-24 = 24kbps = 3 bits/sample
+     * G.726-32 / G.721 = 32kbps = 4 bits/sample */
+    if (codec_id == AV_CODEC_ID_ADPCM_G726) {
+        if (g_ascii_strcasecmp(codec_name, "G726-24") == 0) {
+            dec_ctx->bits_per_coded_sample = 3;
+        } else {
+            dec_ctx->bits_per_coded_sample = 4;
+        }
+    }
 
     if (codec_id == AV_CODEC_ID_PCM_MULAW || codec_id == AV_CODEC_ID_PCM_ALAW) {
         dec_ctx->sample_fmt = AV_SAMPLE_FMT_S16;
@@ -1281,6 +1613,15 @@ LOCAL int rtp_mux_audio_to_wav(const char *output_path,
         frame_size = 160; /* 20ms @ 8kHz */
     } else if (codec_id == AV_CODEC_ID_G729) {
         frame_size = 10;  /* 10ms @ 8kbps — 每帧 10 字节 */
+    } else if (codec_id == AV_CODEC_ID_ADPCM_G726) {
+        /* G.726 帧大小 = 160 samples × bits_per_sample / 8 = 20 × bits_per_sample
+         * G.726-24 (3 bits/sample): 60 bytes
+         * G.726-32 (4 bits/sample): 80 bytes */
+        if (dec_ctx->bits_per_coded_sample == 3) {
+            frame_size = 60;  /* 24kbps, 3 bits/sample, 20ms */
+        } else {
+            frame_size = 80;  /* 32kbps, 4 bits/sample, 20ms */
+        }
     } else {
         frame_size = 320; /* G722: 20ms @ 16kHz */
     }
@@ -1513,6 +1854,13 @@ LOCAL int rtp_save_stream_to_file(const char *output_path,
                                     stream->clockRate,
                                     stream->sps, stream->spsLen,
                                     stream->pps, stream->ppsLen);
+    } else if (g_ascii_strcasecmp(codec, "H261") == 0) {
+        return rtp_mux_h261_to_avi(output_path,
+                                    stream->buf, stream->bufLen,
+                                    stream->firstTimestamp,
+                                    stream->lastTimestamp,
+                                    stream->clockRate,
+                                    stream->frameEnds, stream->frameCount);
     } else if (g_ascii_strcasecmp(codec, "H263") == 0 ||
                g_ascii_strcasecmp(codec, "H263-1998") == 0) {
         return rtp_mux_h263_to_avi(output_path,
@@ -1524,7 +1872,10 @@ LOCAL int rtp_save_stream_to_file(const char *output_path,
     } else if (g_ascii_strcasecmp(codec, "PCMU") == 0 ||
                g_ascii_strcasecmp(codec, "PCMA") == 0 ||
                g_ascii_strcasecmp(codec, "G722") == 0 ||
-               g_ascii_strcasecmp(codec, "G729") == 0) {
+               g_ascii_strcasecmp(codec, "G729") == 0 ||
+               g_ascii_strcasecmp(codec, "G721") == 0 ||
+               g_ascii_strcasecmp(codec, "G726-32") == 0 ||
+               g_ascii_strcasecmp(codec, "G726-24") == 0) {
         return rtp_mux_audio_to_wav(output_path, codec,
                                      stream->buf, stream->bufLen,
                                      stream->firstTimestamp,
@@ -1891,6 +2242,8 @@ LOCAL int rtp_parser(ArkimeSession_t *session, void *uw, const uint8_t *data, in
 
     if (g_ascii_strcasecmp(codec, "H264") == 0) {
         rtp_depacket_h264(stream, payload, payload_len, marker);
+    } else if (g_ascii_strcasecmp(codec, "H261") == 0) {
+        rtp_depacket_h261(stream, payload, payload_len, marker);
     } else if (g_ascii_strcasecmp(codec, "H263") == 0 ||
                g_ascii_strcasecmp(codec, "H263-1998") == 0) {
         rtp_depacket_h263(stream, payload, payload_len, marker);
