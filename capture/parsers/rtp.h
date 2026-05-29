@@ -115,6 +115,11 @@ typedef struct {
     int      bufAlloc;           /* 分配大小 */
     int      bufOverflow;        /* 超过最大限制标志 */
 
+    /* H.263 帧边界 (由 RTP marker bit 确定，替代 PSC 扫描) */
+#define MAX_H263_FRAMES 4096
+    int      frameEnds[MAX_H263_FRAMES]; /* 每帧在 buf 中的结束偏移 */
+    int      frameCount;                  /* 帧数 */
+
     /* 每个 RTP 包的载荷大小，用于正确分割 Opus 等变长帧 */
     int     *packetSizes;        /* 每个 RTP 包的 payload 长度数组 */
     int      packetSizesCount;   /* packetSizes 数组中的元素数 */

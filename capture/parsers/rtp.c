@@ -77,6 +77,7 @@ int rtp_codec_clock_rate(const char *codec)
     if (!codec) return 8000;
     if (g_ascii_strcasecmp(codec, "H264") == 0 ||
         g_ascii_strcasecmp(codec, "H263") == 0 ||
+        g_ascii_strcasecmp(codec, "H263-1998") == 0 ||
         g_ascii_strcasecmp(codec, "MP4V-ES") == 0) return 90000;
     if (g_ascii_strcasecmp(codec, "OPUS") == 0) return 48000;
     if (g_ascii_strcasecmp(codec, "G722") == 0) return 8000;  /* G722 internally 16kHz but RTP clock is 8kHz */
@@ -89,6 +90,8 @@ const char *rtp_codec_container_ext(const char *codec)
 {
     if (!codec) return "raw";
     if (g_ascii_strcasecmp(codec, "H264") == 0)  return "mp4";
+    if (g_ascii_strcasecmp(codec, "H263") == 0 ||
+        g_ascii_strcasecmp(codec, "H263-1998") == 0)  return "avi";
     if (g_ascii_strcasecmp(codec, "PCMU") == 0)  return "wav";
     if (g_ascii_strcasecmp(codec, "PCMA") == 0)  return "wav";
     if (g_ascii_strcasecmp(codec, "G722") == 0)  return "wav";
@@ -148,7 +151,7 @@ const char *rtp_codec_media_type(const char *codec)
 /* 输入: RTP 载荷 (不含 RTP 头部)                                              */
 /* 输出: 追加 Annex B H.264 比特流到流缓冲区                                    */
 /******************************************************************************/
-LOCAL void rtp_depacket_h264(RtpStreamState_t *stream, const uint8_t *payload, int payloadLen)
+LOCAL void rtp_depacket_h264(RtpStreamState_t *stream, const uint8_t *payload, int payloadLen, int marker_bit)
 {
     if (payloadLen <= 0)
         return;
@@ -304,6 +307,83 @@ LOCAL void rtp_depacket_h264(RtpStreamState_t *stream, const uint8_t *payload, i
         break;
     }
     }
+
+    /* 在访问单元边界插入 AUD (Access Unit Delimiter, NAL type 9)
+     * 当 RTP marker bit = 1 时，表示当前 RTP 包是当前视频帧的最后一个包
+     * 参见 RFC 3984 Section 5.1:
+     *   "The marker bit in the RTP header MUST be set to 1 for the last
+     *    packet of an access unit, which completes the picture."
+     * AUD 让 muxer 能精确确定访问单元边界，正确分组 SPS+PPS+IDR 到同一 AVPacket */
+    if (marker_bit) {
+        /* AUD NAL: 2 字节的载荷 (primary_pic_type=7: all slice types possible) */
+        uint8_t aud_nal[] = {0x09, 0xF0};
+        int needed = stream->bufLen + ANNEXB_STARTCODE_LEN + 2;
+        if (needed > MAX_STREAM_BUFFER_SIZE) {
+            stream->bufOverflow = 1;
+            return;
+        }
+        if (needed > stream->bufAlloc) {
+            stream->bufAlloc = needed + 65536;
+            stream->buf = g_realloc(stream->buf, stream->bufAlloc);
+        }
+        memcpy(stream->buf + stream->bufLen, annexb_startcode, ANNEXB_STARTCODE_LEN);
+        stream->bufLen += ANNEXB_STARTCODE_LEN;
+        memcpy(stream->buf + stream->bufLen, aud_nal, 2);
+        stream->bufLen += 2;
+    }
+}
+
+/******************************************************************************/
+/* H.263 解包函数 (RFC 2190 / RFC 4629)                                      */
+/* 输入: RTP 载荷 (不含 RTP 头部)、marker bit                                   */
+/* RTP 载荷头格式: 4 字节 (RR:P:V:PLEN:PEBIT)                                   */
+/* 处理步骤:                                                                     */
+/*   1. 跳过 4 字节 RTP 载荷头                                                  */
+/*   2. PLEN 字节可能包含 PSC (RFC 2190 Mode C) 或为空闲 (RFC 4629)，均保留      */
+/*   3. 所有剩余字节视为 H.263 比特流，追加到流缓冲区                              */
+/*   4. 若 marker=1，记录帧结束偏移                                               */
+/******************************************************************************/
+LOCAL void rtp_depacket_h263(RtpStreamState_t *stream, const uint8_t *payload, int payloadLen,
+                             int marker_bit)
+{
+    /* RFC 2190/4629: 最小需要 4 字节 RTP 载荷头 */
+    if (payloadLen < 4)
+        return;
+
+    /* 只跳过 4 字节 RTP 载荷头
+     *
+     * 注意: 不跳过 PLEN 字节 (RFC 4629 §4.4 建议跳过) 的原因是:
+     * RFC 2190 Mode C 将 H.263 图片头 (PSC+TR+PTYPE) 放入 PLEN 区域，
+     * 比特流本身不再包含 PSC。跳过后会导致 H.263 解码器找不到 PSC。
+     * 保留 PLEN 字节对 RFC 4629 无害 (额外 PSC 会被解码器忽略)，
+     * 对 RFC 2190 Mode C 则至关重要 (PSC 仅存在于 PLEN 区域)。 */
+    int bitstream_offset = 4;
+    if (bitstream_offset > payloadLen) {
+        bitstream_offset = payloadLen;
+    }
+    int data_len = payloadLen - bitstream_offset;
+
+    if (data_len <= 0)
+        return;
+
+    int needed = stream->bufLen + data_len;
+    if (needed > MAX_STREAM_BUFFER_SIZE) {
+        stream->bufOverflow = 1;
+        return;
+    }
+    if (needed > stream->bufAlloc) {
+        stream->bufAlloc = needed + 65536;
+        stream->buf = g_realloc(stream->buf, stream->bufAlloc);
+    }
+    memcpy(stream->buf + stream->bufLen, payload + bitstream_offset, data_len);
+    stream->bufLen += data_len;
+
+    /* 记录帧边界: marker=1 表示当前 RTP 包是视频帧的最后一个包
+     * 当没有 PSC 可用时 (如部分 RFC 2190 实现所有包 P=0),
+     * 使用 marker bit 来标识帧边界 */
+    if (marker_bit && stream->frameCount < MAX_H263_FRAMES) {
+        stream->frameEnds[stream->frameCount++] = stream->bufLen;
+    }
 }
 
 /******************************************************************************/
@@ -351,6 +431,138 @@ LOCAL void rtp_ffmpeg_init(void)
 }
 
 /******************************************************************************/
+/* Bit-level reader helpers for H.264 SPS RBSP parsing                        */
+/******************************************************************************/
+typedef struct {
+    const uint8_t *data;
+    int           size;
+    int           byte_pos;  /* current byte position in data */
+    int           bit_pos;   /* current bit position within byte (0=MSB) */
+} rtp_bit_reader_t;
+
+/* Read one bit from the bitstream */
+static int br_read_bit(rtp_bit_reader_t *br)
+{
+    if (br->byte_pos >= br->size) return 0;
+    int bit = (br->data[br->byte_pos] >> (7 - br->bit_pos)) & 1;
+    br->bit_pos++;
+    if (br->bit_pos >= 8) {
+        br->bit_pos = 0;
+        br->byte_pos++;
+    }
+    return bit;
+}
+
+/* Read n bits as an unsigned integer (MSB first) */
+static int br_read_bits(rtp_bit_reader_t *br, int n)
+{
+    int val = 0;
+    for (int i = 0; i < n; i++) {
+        val = (val << 1) | br_read_bit(br);
+    }
+    return val;
+}
+
+/* Read unsigned Exponential-Golomb coded integer (ue(v)) */
+static int br_read_ue(rtp_bit_reader_t *br)
+{
+    int leading_zeros = 0;
+    while (br_read_bit(br) == 0) {
+        leading_zeros++;
+    }
+    if (leading_zeros == 0) return 0; /* code "1" -> codeNum = 0 */
+    int suffix = br_read_bits(br, leading_zeros);
+    return (1 << leading_zeros) - 1 + suffix;
+}
+
+/******************************************************************************/
+/* H.264 SPS 分辨率解析                                                        */
+/* 手动解析 SPS NAL 单元的 RBSP，提取宽度和高度                                   */
+/* 输入: sps_data - 完整 SPS NAL 单元 (含 NAL 头 0x67)                          */
+/*       sps_len  - SPS 数据长度                                                */
+/* 输出: width, height - 解析出的视频分辨率 (像素)                                */
+/* 返回: 0=成功, -1=失败                                                        */
+/******************************************************************************/
+static int rtp_parse_h264_sps_dimensions(const uint8_t *sps_data, int sps_len,
+                                          int *width, int *height)
+{
+    /* 至少需要: NAL头(1) + profile_idc(1) + constraint_flags(1) + level_idc(1) = 4 bytes */
+    if (!sps_data || sps_len < 4) return -1;
+
+    /* 构建 RBSP：去除 emulation prevention bytes (0x03 after 0x00 0x00) */
+    uint8_t rbsp[256];
+    int rbsp_len = 0;
+    for (int i = 0; i < sps_len && rbsp_len < (int)sizeof(rbsp); i++) {
+        if (i >= 2 && sps_data[i] == 0x03 &&
+            sps_data[i-1] == 0x00 && sps_data[i-2] == 0x00) {
+            /* 跳过 emulation prevention byte，不复制到 RBSP */
+            continue;
+        }
+        rbsp[rbsp_len++] = sps_data[i];
+    }
+
+    /* 跳过 NAL 头 + profile_idc + constraint_flags + level_idc */
+    if (rbsp_len < 5) return -1; /* 至少还需要 seq_parameter_set_id 的空间 */
+
+    /* 从 seq_parameter_set_id 开始解析 */
+    rtp_bit_reader_t br;
+    br.data     = rbsp + 4;  /* 跳过前 4 字节 */
+    br.size     = rbsp_len - 4;
+    br.byte_pos = 0;
+    br.bit_pos  = 0;
+
+    /* seq_parameter_set_id ue(v) */
+    (void)br_read_ue(&br);
+    /* log2_max_frame_num_minus4 ue(v) */
+    (void)br_read_ue(&br);
+    /* pic_order_cnt_type ue(v) */
+    int poc_type = br_read_ue(&br);
+
+    if (poc_type == 0) {
+        /* log2_max_pic_order_cnt_lsb_minus4 ue(v) */
+        (void)br_read_ue(&br);
+    } else if (poc_type == 1) {
+        /* delta_pic_order_always_zero_flag u(1) */
+        (void)br_read_bits(&br, 1);
+        /* offset_for_non_ref_pic se(v) - same ue(v) bit-level parsing */
+        (void)br_read_ue(&br);
+        /* offset_for_top_to_bottom_field se(v) */
+        (void)br_read_ue(&br);
+        /* num_ref_frames_in_pic_order_cnt_cycle ue(v) */
+        int num_ref = br_read_ue(&br);
+        for (int i = 0; i < num_ref; i++) {
+            (void)br_read_ue(&br); /* offset_for_ref_frame[i] se(v) */
+        }
+    }
+    /* else if poc_type == 2: nothing extra */
+
+    /* max_num_ref_frames ue(v) */
+    (void)br_read_ue(&br);
+    /* gaps_in_frame_num_value_allowed_flag u(1) */
+    (void)br_read_bits(&br, 1);
+
+    /* pic_width_in_mbs_minus1 ue(v) */
+    int pic_width_mbs  = br_read_ue(&br);
+    /* pic_height_in_map_units_minus1 ue(v) */
+    int pic_height_units = br_read_ue(&br);
+
+    /* frame_mbs_only_flag u(1) */
+    int frame_mbs_only = br_read_bits(&br, 1);
+
+    *width  = (pic_width_mbs + 1) * 16;
+
+    if (frame_mbs_only) {
+        *height = (pic_height_units + 1) * 16;
+    } else {
+        *height = (pic_height_units + 1) * 32; /* (2 - 0) * (...) */
+    }
+
+    LOG("rtp: SPS parsed dimensions: %dx%d (poc_type=%d frame_mbs_only=%d)",
+        *width, *height, poc_type, frame_mbs_only);
+    return 0;
+}
+
+/******************************************************************************/
 /* FFmpeg: H.264 → MP4 容器封装 (codec copy / passthrough)                    */
 /******************************************************************************/
 LOCAL int rtp_mux_h264_to_mp4(const char *output_path,
@@ -382,6 +594,9 @@ LOCAL int rtp_mux_h264_to_mp4(const char *output_path,
     stream->codecpar->codec_tag  = 0;
     stream->time_base = (AVRational){1, clock_rate > 0 ? clock_rate : 90000};
 
+    LOG("rtp: H264 mux: sps_len=%d pps_len=%d sps[0]=0x%02x sps[1]=0x%02x sps[2]=0x%02x sps[3]=0x%02x",
+        sps_len, pps_len, sps[0], sps[1], sps[2], sps[3]);
+
     /* 构建 extradata (AVCDecoderConfigurationRecord) */
     if (sps_len > 0 && pps_len > 0) {
         uint8_t extradata[256];
@@ -391,10 +606,10 @@ LOCAL int rtp_mux_h264_to_mp4(const char *output_path,
         extradata[extradata_size++] = sps[1];                               /* profile */
         extradata[extradata_size++] = sps[2];                               /* compatibility */
         extradata[extradata_size++] = sps[3];                               /* level */
-        extradata[extradata_size++] = 0xFF;                                 /* 6+2 bits: NAL size = 4 bytes */
-        extradata[extradata_size++] = 0xE1;                                 /* 3+5 bits: 1 SPS */
+        extradata[extradata_size++] = 0xFC | 0x03;                          /* reserved(6)=111111 | lengthSizeMinusOne(2)=3 -> 0xFF */
+        extradata[extradata_size++] = 0xE0 | 0x01;                          /* reserved(3)=111 | numSPS(5)=1 -> 0xE1 */
 
-        /* SPS NAL unit */
+        /* SPS NAL unit - 在 extradata 中存储完整的 NAL 单元（含 NAL 头）*/
         extradata[extradata_size++] = (sps_len >> 8) & 0xFF;
         extradata[extradata_size++] = sps_len & 0xFF;
         if (extradata_size + sps_len <= (int)sizeof(extradata)) {
@@ -402,7 +617,7 @@ LOCAL int rtp_mux_h264_to_mp4(const char *output_path,
             extradata_size += sps_len;
         }
 
-        /* PPS */
+        /* PPS - 1 个 */
         extradata[extradata_size++] = 0x01;                                 /* 1 PPS */
         extradata[extradata_size++] = (pps_len >> 8) & 0xFF;
         extradata[extradata_size++] = pps_len & 0xFF;
@@ -416,6 +631,30 @@ LOCAL int rtp_mux_h264_to_mp4(const char *output_path,
             memcpy(stream->codecpar->extradata, extradata, extradata_size);
             stream->codecpar->extradata_size = extradata_size;
         }
+
+        /* 手动解析 SPS RBSP 获取宽高（FFmpeg 解码器从 extradata 无法解析宽高） */
+        if (stream->codecpar->width <= 0 || stream->codecpar->height <= 0) {
+            int sps_w = 0, sps_h = 0;
+            if (rtp_parse_h264_sps_dimensions(sps, sps_len, &sps_w, &sps_h) == 0) {
+                stream->codecpar->width  = sps_w;
+                stream->codecpar->height = sps_h;
+                LOG("rtp: H264 set dimensions from SPS: %dx%d", sps_w, sps_h);
+            } else {
+                LOG("rtp: WARNING - could not parse H.264 SPS dimensions, SPS len=%d", sps_len);
+                /* 设置默认尺寸避免 MP4 muxer 报错 */
+                stream->codecpar->width  = 352;
+                stream->codecpar->height = 288;
+            }
+        }
+
+        /* 调试：打印 extradata hex dump */
+        char hexbuf[2048] = {0};
+        for (int ei = 0; ei < extradata_size && ei < 64 && ei*2+2 < (int)sizeof(hexbuf); ei++) {
+            snprintf(hexbuf + ei*2, sizeof(hexbuf) - ei*2, "%02x", extradata[ei]);
+        }
+        LOG("rtp: H264 extradata[%d]: %s", extradata_size, hexbuf);
+    } else {
+        LOG("rtp: H264 mux: WARNING no SPS/PPS, extradata NOT set");
     }
 
     /* 打开输出文件 */
@@ -432,97 +671,502 @@ LOCAL int rtp_mux_h264_to_mp4(const char *output_path,
         goto cleanup_file;
     }
 
-    /* 解析 Annex B 比特流，提取 NAL 单元作为 AVPacket 写入 */
-    int offset = 0;
+    /* 解析 Annex B 比特流，分组为访问单元（Access Unit）
+     * 一个访问单元 = 一帧视频，可能包含多个 NAL 单元（如 SPS+PPS+IDR）
+     * 所有属于同一帧的 NAL 单元必须写入同一个 AVPacket 中
+     *
+     * 边界检测：AUD (NAL type 9) — 由 depacketizer 根据 RTP M bit 插入 */
     uint32_t ts = first_ts;
     int frame_count = 0;
 
-    while (offset < annex_b_len) {
-        /* 查找下一个起始码 */
-        int start_pos = -1;
-        for (int i = offset; i < annex_b_len - 3; i++) {
-            if (annex_b_data[i]   == 0x00 &&
-                annex_b_data[i+1] == 0x00 &&
-                annex_b_data[i+2] == 0x00 &&
-                annex_b_data[i+3] == 0x01) {
-                start_pos = i;
-                break;
-            }
-            /* 3字节起始码 */
-            if (annex_b_data[i]   == 0x00 &&
-                annex_b_data[i+1] == 0x00 &&
-                annex_b_data[i+2] == 0x01) {
-                start_pos = i;
-                break;
-            }
-        }
+    /* 当前访问单元的状态 */
+    uint8_t *au_data = NULL;      /* AVCC 格式的缓冲区（4字节长度前缀 + NAL数据） */
+    int     au_size = 0;
+    int     au_keyframe = 0;      /* 当前访问单元是否为关键帧 */
 
-        if (start_pos < 0) {
-            /* 没有更多起始码，写入剩余数据作为一个包 */
-            if (offset < annex_b_len) {
-                AVPacket *pkt = av_packet_alloc();
-                if (pkt) {
-                    pkt->data = (uint8_t *)annex_b_data + offset;
-                    pkt->size = annex_b_len - offset;
-                    pkt->stream_index = stream->index;
-                    pkt->pts = pkt->dts = ts;
-                    pkt->duration = 1;
-                    av_interleaved_write_frame(fmt_ctx, pkt);
-                    av_packet_free(&pkt);
-                }
-            }
+    /* 向前跳过可能的起始码，找到第一个 NAL 单元 */
+    int pos = 0;
+    while (pos < annex_b_len - 3) {
+        if ((pos + 3 < annex_b_len &&
+             annex_b_data[pos]   == 0x00 && annex_b_data[pos+1] == 0x00 &&
+             annex_b_data[pos+2] == 0x00 && annex_b_data[pos+3] == 0x01) ||
+            (annex_b_data[pos]   == 0x00 && annex_b_data[pos+1] == 0x00 &&
+             annex_b_data[pos+2] == 0x01)) {
             break;
         }
+        pos++;
+    }
 
-        /* 找到起始码之间的一个 NAL 单元 */
-        if (frame_count > 0) {
-            /* 从 previous offset 到 start_pos */
-            int nal_len = start_pos - offset;
-            if (nal_len > 0) {
-                AVPacket *pkt = av_packet_alloc();
-                if (pkt) {
-                    pkt->data = (uint8_t *)annex_b_data + offset;
-                    pkt->size = nal_len;
-                    pkt->stream_index = stream->index;
-                    pkt->pts = pkt->dts = ts;
-                    pkt->duration = 0; /* will be fixed at end */
-
-                    /* 检测是否为关键帧 (IDR) */
-                    for (int i = 0; i < nal_len; i++) {
-                        if (i + ANNEXB_STARTCODE_LEN <= nal_len &&
-                            memcmp(annex_b_data + offset + i, annexb_startcode, ANNEXB_STARTCODE_LEN) == 0) {
-                            int nal_offset = i + ANNEXB_STARTCODE_LEN;
-                            if (nal_offset < nal_len) {
-                                uint8_t nalu_type = H264_NAL_TYPE(annex_b_data[offset + nal_offset]);
-                                if (nalu_type == H264_NAL_IDR) {
-                                    pkt->flags |= AV_PKT_FLAG_KEY;
-                                }
-                            }
-                            break;
-                        }
-                    }
-
-                    av_interleaved_write_frame(fmt_ctx, pkt);
-                    av_packet_free(&pkt);
+    int i = pos;
+    while (i < annex_b_len) {
+        /* 查找下一个起始码，需要正确处理 emulation prevention bytes (0x03)
+         * H.264 Annex B 中，编码器会在 00 00 后插入 0x03 防止与起始码混淆：
+         *   原始数据 00 00 00 → 00 00 03 00
+         *   原始数据 00 00 01 → 00 00 03 01
+         *   原始数据 00 00 02 → 00 00 03 02
+         *   原始数据 00 00 03 → 00 00 03 03
+         * 因此扫描时必须跳过这些 emulation prevention 序列 */
+        int next_start = -1;
+        int sc_len = 0;
+        for (int j = i; j < annex_b_len - 2; j++) {
+            /* 4字节起始码 0x00000001 — 永远不会被 emulation prevention 混淆 */
+            if (j + 3 < annex_b_len &&
+                annex_b_data[j]   == 0x00 && annex_b_data[j+1] == 0x00 &&
+                annex_b_data[j+2] == 0x00 && annex_b_data[j+3] == 0x01) {
+                next_start = j;
+                sc_len = 4;
+                break;
+            }
+            /* 3字节起始码 0x000001 — 需排除 emulation prevention: 00 00 03 01 */
+            if (annex_b_data[j]   == 0x00 && annex_b_data[j+1] == 0x00 &&
+                annex_b_data[j+2] == 0x01) {
+                /* 检查是否为 emulation prevention 00 00 03 01 */
+                if (j >= 3 &&
+                    annex_b_data[j-1] == 0x03 &&
+                    annex_b_data[j-2] == 0x00 &&
+                    annex_b_data[j-3] == 0x00) {
+                    /* 这是 emulation prevention 00 00 03 01，不是真正的起始码 */
+                    continue;
                 }
-
-                /* 简单的时间戳推进 (每帧固定时长) */
-                ts += (clock_rate > 0) ? (clock_rate / 30) : 3000;  /* ~30fps */
-                frame_count++;
+                next_start = j;
+                sc_len = 3;
+                break;
             }
         }
 
-        offset = start_pos + ANNEXB_STARTCODE_LEN;
-        frame_count++;
+        int nal_start, nal_len;
+        if (next_start < 0) {
+            /* 没有更多起始码 — 剩余数据是最后一个 NAL 单元 */
+            nal_start = i;
+            nal_len   = annex_b_len - i;
+        } else {
+            nal_start = i;
+            nal_len   = next_start - i;
+        }
+
+        if (nal_len > 0) {
+            uint8_t nal_type = H264_NAL_TYPE(annex_b_data[nal_start]);
+            int is_aud = (nal_type == H264_NAL_AUD);
+
+            if (is_aud) {
+                /* AUD 标记当前访问单元结束：刷新缓冲区为一个 AVPacket
+                 * AUD 本身不加入 AVPacket 数据（解码器不需要） */
+                if (au_size > 0) {
+                    AVPacket *pkt = av_packet_alloc();
+                    if (pkt) {
+                        pkt->data = au_data;
+                        pkt->size = au_size;
+                        pkt->stream_index = stream->index;
+                        pkt->pts = pkt->dts = ts;
+                        pkt->duration = 1;
+                        if (au_keyframe) {
+                            pkt->flags |= AV_PKT_FLAG_KEY;
+                        }
+                        av_interleaved_write_frame(fmt_ctx, pkt);
+                        av_packet_free(&pkt);
+                        frame_count++;
+                        ts += (clock_rate > 0) ? (clock_rate / 30) : 3000;
+                    } else {
+                        av_free(au_data);
+                    }
+                    au_data = NULL;
+                    au_size = 0;
+                    au_keyframe = 0;
+                }
+                /* 跳过 AUD 本身：不加入缓冲区 */
+                goto next_nal;
+            }
+
+            /* 添加当前 NAL 单元到访问单元缓冲区（AVCC 格式：4字节大端长度前缀） */
+            {
+                uint8_t *new_buf = av_realloc(au_data, au_size + 4 + nal_len);
+                if (new_buf) {
+                    au_data = new_buf;
+                    au_data[au_size+0] = (nal_len >> 24) & 0xFF;
+                    au_data[au_size+1] = (nal_len >> 16) & 0xFF;
+                    au_data[au_size+2] = (nal_len >> 8) & 0xFF;
+                    au_data[au_size+3] = nal_len & 0xFF;
+                    memcpy(au_data + au_size + 4, annex_b_data + nal_start, nal_len);
+                    au_size += 4 + nal_len;
+                }
+            }
+
+            if (nal_type == H264_NAL_IDR) {
+                au_keyframe = 1;
+            }
+        }
+
+next_nal:
+        if (next_start < 0) break;
+        i = next_start + sc_len;
     }
 
-    /* 修复最后一帧的时长 */
-    /* (av_write_trailer 会处理) */
+    /* 刷新最后一个访问单元 */
+    if (au_size > 0) {
+        AVPacket *pkt = av_packet_alloc();
+        if (pkt) {
+            pkt->data = au_data;
+            pkt->size = au_size;
+            pkt->stream_index = stream->index;
+            pkt->pts = pkt->dts = ts;
+            pkt->duration = 1;
+            if (au_keyframe) {
+                pkt->flags |= AV_PKT_FLAG_KEY;
+            }
+            av_interleaved_write_frame(fmt_ctx, pkt);
+            av_packet_free(&pkt);
+            frame_count++;
+        } else {
+            av_free(au_data);
+        }
+    }
 
     /* 写尾部 */
     av_write_trailer(fmt_ctx);
 
     LOG("rtp: H.264→MP4 muxed %s: %d frames, %d bytes input", output_path, frame_count, annex_b_len);
+    ret = 0;
+
+cleanup_file:
+    avio_closep(&fmt_ctx->pb);
+cleanup:
+    avformat_free_context(fmt_ctx);
+    return ret;
+}
+
+/******************************************************************************/
+/* 手动解析 H.263 帧头获取宽高                                                */
+/* H.263 比特流格式 (ITU-T H.263):                                           */
+/*   PSC (22 bits): 0000 0000 0000 0000 1000 00                              */
+/*   字节对齐后: [0x00][0x00][0x80-0xBF]                                      */
+/*   紧跟 PSC: TR (8 bits) + PTYPE (9 bits)                                  */
+/* PTYPE 中的 Source Format (3 bits) 索引标准分辨率：                          */
+/*   0=Sub-QCIF(128x96) 1=QCIF(176x144) 2=CIF(352x288)                       */
+/*   3=4CIF(704x576) 4=16CIF(1408x1152)                                      */
+/******************************************************************************/
+LOCAL int rtp_parse_h263_dimensions(const uint8_t *data, int len,
+                                     int *width, int *height)
+{
+    /* 查找第一个 PSC */
+    int psc_pos = -1;
+    for (int i = 0; i < len - 2; i++) {
+        if (data[i] == 0x00 && data[i+1] == 0x00 &&
+            data[i+2] >= 0x80 && data[i+2] <= 0xBF) {
+            psc_pos = i;
+            break;
+        }
+    }
+    if (psc_pos < 0 || psc_pos + 5 > len) {
+        LOG("rtp: H263 dimensions: no PSC found in %d bytes", len);
+        return -1;
+    }
+
+    /* PSC 后，PTYPE 的 Source Format 字段在 byte[psc_pos+4] 的高 4 位
+     * 字节布局 (PSC 后的 bitstream):
+     *   byte[2]: 0x80-0xBF (PSC 末尾 6 bits + TR 前 2 bits)
+     *   byte[3]: TR 后 6 bits + PTYPE 前 2 bits (Split, DocCam)
+     *   byte[4]: PTYPE 后 7 bits (Freeze|SF0|SF1|SF2|PCT0|PCT1|reserved)
+     * Source Format = PTYPE[5:3] = (byte[4] >> 4) & 0x07 */
+    int src_fmt = (data[psc_pos + 4] >> 4) & 0x07;
+
+    static const int h263_widths[]  = {128, 176, 352, 704, 1408};
+    static const int h263_heights[] = {96,  144, 288, 576, 1152};
+
+    if (src_fmt >= 0 && src_fmt <= 4) {
+        *width  = h263_widths[src_fmt];
+        *height = h263_heights[src_fmt];
+        LOG("rtp: H263 parsed dimensions: %dx%d (src_fmt=%d)",
+            *width, *height, src_fmt);
+        return 0;
+    }
+
+    LOG("rtp: H263 dimensions: unknown source format %d", src_fmt);
+    return -1;
+}
+
+/******************************************************************************/
+/* FFmpeg: H.263 → AVI 容器封装 (codec copy / passthrough)                    */
+/* H.263 比特流由帧组成，帧边界由 PSC (Picture Start Code) 标记                  */
+/* PSC = 22 bits: 0000 0000 0000 0000 1000 0000 00xx xxxx                     */
+/* 字节对齐后: 0x00 0x00 [0x80 .. 0xBF]                                       */
+/*                                                                            */
+/* 注意：FFmpeg 的 MP4 muxer 不支持 AV_CODEC_ID_H263，需使用 AVI 容器。          */
+/******************************************************************************/
+#define H263_PSC_BYTE2_MIN  0x80
+#define H263_PSC_BYTE2_MAX  0xBF
+
+LOCAL int rtp_mux_h263_to_avi(const char *output_path,
+                               const uint8_t *h263_data, int h263_len,
+                               uint32_t first_ts, uint32_t last_ts, int clock_rate,
+                               const int *frameEnds, int frameCount)
+{
+    AVFormatContext *fmt_ctx = NULL;
+    AVStream *stream = NULL;
+    int ret = -1;
+
+    /* 分配输出上下文 — 显式指定 AVI muxer */
+    ret = avformat_alloc_output_context2(&fmt_ctx, NULL, "avi", output_path);
+    if (ret < 0 || !fmt_ctx) {
+        LOG("rtp: avformat_alloc_output_context2 (avi) failed for %s", output_path);
+        return -1;
+    }
+
+    /* 创建视频流 */
+    stream = avformat_new_stream(fmt_ctx, NULL);
+    if (!stream) {
+        LOG("rtp: avformat_new_stream failed");
+        goto cleanup;
+    }
+
+    stream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
+    stream->codecpar->codec_id   = AV_CODEC_ID_H263;
+    stream->codecpar->codec_tag  = 0;
+
+    /* 从 RTP 时间戳计算帧率 (frame_spacing) 并设置 AVI time_base
+     *
+     * 原理: RTP 时间戳以 clock_rate Hz 递增，
+     *   frame_spacing = (last_ts - first_ts) / (frameCount - 1) ticks
+     *   每帧时长 = frame_spacing / clock_rate 秒
+     *   time_base = {frame_spacing, clock_rate} (约分后)
+     *
+     * 例如 10fps 时: frame_spacing=9000, clock=90000 → {1,10} 即每 tick=0.1秒
+     * 这样 PTS=i 表示第 i 帧在 i*0.1 秒处 */
+    int clock = clock_rate > 0 ? clock_rate : 90000;
+    int frame_spacing = clock / 10; /* 默认 10fps 备用 */
+    if (frameCount > 1 && last_ts > first_ts) {
+        int ts_diff = (int)(last_ts - first_ts);
+        if (ts_diff > 0)
+            frame_spacing = ts_diff / (frameCount - 1);
+    }
+    stream->time_base = (AVRational){frame_spacing, clock};
+    av_reduce(&stream->time_base.num, &stream->time_base.den,
+              stream->time_base.num, stream->time_base.den, INT_MAX);
+    stream->avg_frame_rate = (AVRational){stream->time_base.den, stream->time_base.num};
+
+    /* 手动解析 H.263 帧头获取宽高 */
+    {
+        int w = 0, h = 0;
+        if (rtp_parse_h263_dimensions(h263_data, h263_len, &w, &h) == 0) {
+            stream->codecpar->width  = w;
+            stream->codecpar->height = h;
+        } else {
+            /* 设置默认值让 AVI muxer 能工作 */
+            stream->codecpar->width  = 352;
+            stream->codecpar->height = 288;
+            LOG("rtp: H263 using default dimensions 352x288");
+        }
+    }
+
+    /* 打开输出文件 */
+    ret = avio_open(&fmt_ctx->pb, output_path, AVIO_FLAG_WRITE);
+    if (ret < 0) {
+        LOG("rtp: avio_open failed for %s: %s", output_path, av_err2str(ret));
+        goto cleanup;
+    }
+
+    /* 写头部 */
+    ret = avformat_write_header(fmt_ctx, NULL);
+    if (ret < 0) {
+        LOG("rtp: avformat_write_header (avi) failed: %s", av_err2str(ret));
+        goto cleanup_file;
+    }
+
+    /* 使用帧边界 (frameEnds) 分割比特流并写入 AVI
+     * frameEnds 由 depacketizer 在收到 RTP marker=1 时记录，
+     * 适用于 PSC 缺失 (P=0) 的 H.263 流
+     *
+     * 注意：部分 SIP 终端（如 MicroSIP/pjmedia）发送的 H.263 RTP 流中
+     * 所有包的 P 标志位均为 0，数据中不包含 PSC (Picture Start Code)。
+     * 此类流必须由 RTP marker bit 确定帧边界，并在输出时合成有效帧头。 */
+    /*
+     * PTS 使用帧索引 (0, 1, 2, ...) 归一化到 time_base 单位。
+     * time_base 已从 RTP 时间戳计算得到（见上方代码），
+     * 因此 PTS=i 表示第 i 帧的时间位置。每帧 duration=1。 */
+    int prev_end = 0;
+
+    /* 检测原始数据中是否包含 PSC，以决定是否需要合成帧头 */
+#define H263_SYNTH_HEADER_LEN 5
+    int has_psc = 0;
+    for (int i = 0; i < h263_len - 2 && !has_psc; i++) {
+        if (h263_data[i] == 0x00 && h263_data[i + 1] == 0x00 &&
+            h263_data[i + 2] >= H263_PSC_BYTE2_MIN &&
+            h263_data[i + 2] <= H263_PSC_BYTE2_MAX) {
+            has_psc = 1;
+        }
+    }
+
+    if (frameCount <= 0) {
+        /* 无帧边界信息 (如 RTP marker 未标记)，尝试 PSC 扫描作为回退 */
+        LOG("rtp: H263 no frame boundaries from marker bits, trying PSC scan");
+
+        int offset = 0;
+        int frame_index = 0;
+        while (offset < h263_len) {
+            /* 查找下一个 PSC */
+            int next_psc = -1;
+            for (int i = offset; i < h263_len - 2; i++) {
+                if (h263_data[i] == 0x00 && h263_data[i + 1] == 0x00 &&
+                    h263_data[i + 2] >= H263_PSC_BYTE2_MIN &&
+                    h263_data[i + 2] <= H263_PSC_BYTE2_MAX) {
+                    next_psc = i;
+                    break;
+                }
+            }
+
+            if (next_psc < 0) {
+                /* 没有更多 PSC，将剩余数据作为最后一帧写入 */
+                if (offset < h263_len) {
+                    AVPacket *pkt = av_packet_alloc();
+                    if (pkt) {
+                        if (av_new_packet(pkt, h263_len - offset) >= 0) {
+                            memcpy(pkt->data, h263_data + offset, h263_len - offset);
+                            pkt->stream_index = stream->index;
+                            pkt->pts = pkt->dts = frame_index;
+                            pkt->duration = 1;
+                            pkt->flags |= AV_PKT_FLAG_KEY;
+                            av_interleaved_write_frame(fmt_ctx, pkt);
+                        }
+                        av_packet_free(&pkt);
+                    }
+                }
+                break;
+            }
+
+            if (offset > 0) {
+                /* 从 offset 到 next_psc 之间的数据是一个完整的 H.263 帧 */
+                int frame_len = next_psc - offset;
+                if (frame_len > 0) {
+                    AVPacket *pkt = av_packet_alloc();
+                    if (pkt) {
+                        if (av_new_packet(pkt, frame_len) >= 0) {
+                            memcpy(pkt->data, h263_data + offset, frame_len);
+                            pkt->stream_index = stream->index;
+                            pkt->pts = pkt->dts = frame_index;
+                            pkt->duration = 1;
+                            pkt->flags |= AV_PKT_FLAG_KEY;
+                            av_interleaved_write_frame(fmt_ctx, pkt);
+                        }
+                        av_packet_free(&pkt);
+                    }
+                    frame_index++;
+                }
+            }
+
+            offset = next_psc;
+            if (offset > 0) {
+                frame_index++;
+            }
+        }
+    } else {
+        /* 使用 depacketizer 记录的帧边界
+         * time_base 已从 RTP 时间戳计算得到：
+         *   time_base.num = frame_spacing (约分后)
+         *   time_base.den = clock (约分后)
+         * 因此 PTS=i 即表示第 i 帧的正确时间位置 */
+        for (int i = 0; i < frameCount; i++) {
+            int frame_start = prev_end;
+            int frame_end   = frameEnds[i];
+            int frame_len   = frame_end - frame_start;
+
+            if (frame_len <= 0)
+                continue;
+
+            /* 合成 H.263 帧头或直接使用原始数据 */
+            int total_len;
+            uint8_t synth_header[H263_SYNTH_HEADER_LEN];
+
+            if (!has_psc) {
+                /* 原始数据中无 PSC，合成有效帧头
+                 * H.263 帧头结构 (5 字节):
+                 *   byte[0-1]: PSC 前 16 bits = 0x00 0x00
+                 *   byte[2]: PSC 后 6 bits (100000) | TR[7:6]
+                 *   byte[3]: TR[5:0] << 2 | M(1) | PTYPE[0](0)
+                 *   byte[4]: PTYPE (CIF + INTRA/P)
+                 * PTYPE = 0x0C: Split=0, DocCam=0, Freeze=0,
+                 *                SourceFormat=011(CIF), PicType=0(INTRA)
+                 * PTYPE = 0x0E: PicType=1(INTER/P-frame) */
+                int tr = i & 0xFF; /* Temporal Reference = frame index */
+                synth_header[0] = 0x00;
+                synth_header[1] = 0x00;
+                synth_header[2] = 0x80 | ((tr >> 6) & 0x03);
+                synth_header[3] = ((tr & 0x3F) << 2) | 0x02; /* M=1 */
+                /* 首帧用 INTRA，后续帧用 INTER — 确保至少有一个关键帧 */
+                synth_header[4] = (i == 0) ? 0x0C : 0x0E;
+                total_len = H263_SYNTH_HEADER_LEN + frame_len;
+            } else {
+                total_len = frame_len;
+            }
+
+            AVPacket *pkt = av_packet_alloc();
+            if (!pkt)
+                break;
+
+            if (av_new_packet(pkt, total_len) >= 0) {
+                uint8_t *dst = pkt->data;
+                if (!has_psc) {
+                    /* 写入合成帧头 */
+                    memcpy(dst, synth_header, H263_SYNTH_HEADER_LEN);
+                    dst += H263_SYNTH_HEADER_LEN;
+                }
+                /* 写入原始帧数据 */
+                memcpy(dst, h263_data + frame_start, frame_len);
+                pkt->stream_index = stream->index;
+                pkt->pts = pkt->dts = i;
+                pkt->duration = 1;
+                pkt->flags |= AV_PKT_FLAG_KEY;
+                av_interleaved_write_frame(fmt_ctx, pkt);
+            }
+            av_packet_free(&pkt);
+
+            prev_end = frame_end;
+        }
+
+        /* 写入剩余数据 (如有) — PTS 接续在最后一帧之后 */
+        if (prev_end < h263_len) {
+            int remaining = h263_len - prev_end;
+            if (remaining > 0) {
+                int total_len;
+                uint8_t synth_header[H263_SYNTH_HEADER_LEN];
+
+                if (!has_psc) {
+                    int tr = frameCount & 0xFF;
+                    synth_header[0] = 0x00;
+                    synth_header[1] = 0x00;
+                    synth_header[2] = 0x80 | ((tr >> 6) & 0x03);
+                    synth_header[3] = ((tr & 0x3F) << 2) | 0x02;
+                    /* 剩余帧用 INTER PTYPE */
+                    synth_header[4] = 0x0E;
+                    total_len = H263_SYNTH_HEADER_LEN + remaining;
+                } else {
+                    total_len = remaining;
+                }
+
+                AVPacket *pkt = av_packet_alloc();
+                if (pkt) {
+                    if (av_new_packet(pkt, total_len) >= 0) {
+                        uint8_t *dst = pkt->data;
+                        if (!has_psc) {
+                            memcpy(dst, synth_header, H263_SYNTH_HEADER_LEN);
+                            dst += H263_SYNTH_HEADER_LEN;
+                        }
+                        memcpy(dst, h263_data + prev_end, remaining);
+                        pkt->stream_index = stream->index;
+                        pkt->pts = pkt->dts = frameCount;
+                        pkt->duration = 1;
+                        pkt->flags |= AV_PKT_FLAG_KEY;
+                        av_interleaved_write_frame(fmt_ctx, pkt);
+                    }
+                    av_packet_free(&pkt);
+                }
+            }
+        }
+    }
+
+    /* 写尾部 */
+    av_write_trailer(fmt_ctx);
+
+    LOG("rtp: H.263→AVI muxed %s: %d frames (%d from marker), %d bytes input",
+        output_path, frameCount > 0 ? frameCount : 0, frameCount, h263_len);
     ret = 0;
 
 cleanup_file:
@@ -869,6 +1513,14 @@ LOCAL int rtp_save_stream_to_file(const char *output_path,
                                     stream->clockRate,
                                     stream->sps, stream->spsLen,
                                     stream->pps, stream->ppsLen);
+    } else if (g_ascii_strcasecmp(codec, "H263") == 0 ||
+               g_ascii_strcasecmp(codec, "H263-1998") == 0) {
+        return rtp_mux_h263_to_avi(output_path,
+                                    stream->buf, stream->bufLen,
+                                    stream->firstTimestamp,
+                                    stream->lastTimestamp,
+                                    stream->clockRate,
+                                    stream->frameEnds, stream->frameCount);
     } else if (g_ascii_strcasecmp(codec, "PCMU") == 0 ||
                g_ascii_strcasecmp(codec, "PCMA") == 0 ||
                g_ascii_strcasecmp(codec, "G722") == 0 ||
@@ -1120,6 +1772,7 @@ LOCAL int rtp_parser(ArkimeSession_t *session, void *uw, const uint8_t *data, in
     int cc             = RTP_CC(data);
     int extension      = RTP_EXTENSION(data);
     int padding        = RTP_PADDING(data);
+    int marker         = RTP_MARKER(data);
     int payload_type   = RTP_PT(data);
     uint16_t seq       = RTP_SEQ(data);
     uint32_t timestamp = RTP_TS(data);
@@ -1237,7 +1890,10 @@ LOCAL int rtp_parser(ArkimeSession_t *session, void *uw, const uint8_t *data, in
     const char *codec = stream->codec[0] ? stream->codec : rtpData->codecInfo.codec;
 
     if (g_ascii_strcasecmp(codec, "H264") == 0) {
-        rtp_depacket_h264(stream, payload, payload_len);
+        rtp_depacket_h264(stream, payload, payload_len, marker);
+    } else if (g_ascii_strcasecmp(codec, "H263") == 0 ||
+               g_ascii_strcasecmp(codec, "H263-1998") == 0) {
+        rtp_depacket_h263(stream, payload, payload_len, marker);
     } else {
         /* 默认：直接追加为原始帧 (音频等) */
         rtp_append_audio_frame(stream, payload, payload_len);
