@@ -1171,9 +1171,9 @@ void arkime_parser_init()
                                        (char *)NULL);
 
     bodyFileField = arkime_field_define("http", "termfield",
-                                        "http.bodyfile", "HTTP Body File", "http.bodyFile",
+                                        "http.files", "HTTP Body File", "http.files",
                                         "HTTP Body saved file path",
-                                        ARKIME_FIELD_TYPE_STR_HASH, 0,
+                                        ARKIME_FIELD_TYPE_STR_HASH, ARKIME_FIELD_FLAG_CNT,
                                         (char *)NULL);
 
     for (int i = 0; i <= HTTP_MAX_METHOD; i++) {

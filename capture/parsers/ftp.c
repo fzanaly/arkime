@@ -398,8 +398,8 @@ void arkime_parser_init()
                                       ARKIME_FIELD_TYPE_STR_HASH, ARKIME_FIELD_FLAG_CNT,
                                       (char *)NULL);
 
-    savedFileField = arkime_field_define("ftp", "termfield",
-                                          "ftp.savedFile", "Saved File", "ftp.savedFile",
+    savedFileField = arkime_field_define("ftp-data", "termfield",
+                                          "ftp-data.files", "FTP Saved File", "ftp-data.files",
                                           "Path of the reassembled FTP data-channel file saved to disk",
                                           ARKIME_FIELD_TYPE_STR_HASH, ARKIME_FIELD_FLAG_CNT,
                                           (char *)NULL);

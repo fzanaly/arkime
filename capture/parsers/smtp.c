@@ -1319,8 +1319,8 @@ void arkime_parser_init()
                                      (char *)NULL);
 
     /* SMTP body file fields */
-    bodyFileField = arkime_field_define("email", "termfield",
-                                        "email.bodyfile", "Body File", "email.bodyFile",
+    bodyFileField = arkime_field_define("smtp", "termfield",
+                                        "email.files", "Body File", "smtp.files",
                                         "SMTP email body file path",
                                         ARKIME_FIELD_TYPE_STR_HASH,  ARKIME_FIELD_FLAG_CNT,
                                         (char *)NULL);

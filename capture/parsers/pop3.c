@@ -269,9 +269,9 @@ void arkime_parser_init()
                                     (char *)NULL);
 
     bodyFileField = arkime_field_define("pop3", "termfield",
-                                        "pop3.bodyfile", "POP3 Body File", "pop3.bodyFile",
+                                        "pop3.files", "POP3 Body File", "pop3.files",
                                         "POP3 email body saved file path",
-                                        ARKIME_FIELD_TYPE_STR_HASH, 0,
+                                        ARKIME_FIELD_TYPE_STR_HASH, ARKIME_FIELD_FLAG_CNT,
                                         (char *)NULL);
 
     magicField = arkime_field_define("pop3", "termfield",

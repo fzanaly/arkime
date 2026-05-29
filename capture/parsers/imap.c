@@ -370,9 +370,9 @@ void arkime_parser_init()
                                       (char *)NULL);
 
     bodyFileField = arkime_field_define("imap", "termfield",
-                                        "imap.bodyfile", "IMAP Body File", "imap.bodyFile",
+                                        "imap.files", "IMAP Body File", "imap.files",
                                         "IMAP email body saved file path",
-                                        ARKIME_FIELD_TYPE_STR_HASH, 0,
+                                        ARKIME_FIELD_TYPE_STR_HASH, ARKIME_FIELD_FLAG_CNT,
                                         (char *)NULL);
 
     magicField = arkime_field_define("imap", "termfield",
